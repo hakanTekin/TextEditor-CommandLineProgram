@@ -289,39 +289,127 @@ bool checkInputLengthValidity(char line[])
         return false;
 }
 
-int methodTests(){
+int parseSingleCommand(char *token, char *fileName){ 
+    //Method gets a single char array containing one command as token, and the fileName it should be writing into
+    char *mainCommand = strtok(token, " ");
+    if(strcmp(mainCommand, "search")){
+
+    }else if(strcmp(mainCommand, "search")){
+        //The current code only checks for first 3 keywords. If there are, say 15; no error is shown.
+        char *keyword = strtok(token, " ");
+        bool countFlag = false;
+
+        if(strtok(NULL, " ") == "-c")
+            countFlag = true;
+
+        if(keyword == NULL) 
+            perror("Error keyword is null in search command");
+
+        search(keyword, countFlag, openFileForReadPlus(fileName));
+
+    }else if(strcmp(mainCommand, "replace")){
+        char *targetKeyword = strtok(NULL, " ");
+        char *sourceKeyword = strtok(NULL, " ");
+        bool countFlag = false;
+
+        if(strtok(NULL, " ") == "-c")
+            countFlag = true;
+
+         if(targetKeyword == NULL || sourceKeyword == NULL) 
+            perror("Error. A necessary command is missing in replace command");
+
+        replace(targetKeyword, sourceKeyword, countFlag, openFileForReadPlus(fileName));
+
+    }else if(strcmp(mainCommand, "insert")){
+        char *insertedKeyword  = strtok(NULL, " ");
+        bool countFlag = false;
+
+        if(strtok(NULL, " ") == "-c")
+            countFlag = true;
+        
+    }else if(strcmp(mainCommand, "lineCount")){
+        while(mainCommand = strtok(NULL, " ")){}
+    }else if(strcmp(mainCommand, "split")){
+        while(mainCommand = strtok(NULL, " ")){}
+    }else if(strcmp(mainCommand, "head")){
+        while(mainCommand = strtok(NULL, " ")){}
+    }else if(strcmp(mainCommand, "tail")){
+        while(mainCommand = strtok(NULL, " ")){}
+    }else if(strcmp(mainCommand, "mid")){
+        
+    }
+}
+
+char* getFileNameFromInputLine(char *l){
+    char *line = l;
+    char *fileName;
+    char *token = strtok(line, " ");
+    if(token == NULL) return NULL;
+    while(token != NULL){
+        token = strtok(NULL, " ");
+    }
+    //Since the last token should be the filename, this method returns the filename :)
+    return token; 
     
-    printf("\nStarting by 117");
-    
-    replace("mjolnir", "hakan", true, openFileForReadPlus("hehe.txt"));
-    split(5, openFileForReadPlus("hehe.txt"));
-    printf("\nExiting by 117");
-    exit(117);
-    return 132;
 }
 
-int simultaneousSeperator(char *line){
-    //; is threaded    
-    char *partOne[MAX_LINE_LENGTH];
-    char *partTwo[MAX_LINE_LENGTH];
+int inputLoop()
+{
 
-}
-
-int normalModeSeperator(char *line){ //: is normal
-    strtok(line, ":")
-}
-
-int inputLoop(){
+    //search hakan : insert ahmet hakan; search ahmet
     char line[MAX_LINE_LENGTH];
     bool whileFlag = true;
-    do{
-        if(gets(line)){
-            simultaneousSeperator(line);
-        }else{
+    char commandsSequential[9999][512];
+    char commandsThreaded[9999][512];
+
+    char *linePtr = NULL;
+
+    do
+    {
+        printf("command > ");
+        if (gets(line))
+        {
+            linePtr = line;
+            if(strlen(linePtr) > MAX_LINE_LENGTH){
+                perror("Error. This line is too long. Max length is %d", MAX_LINE_LENGTH);
+                continue;
+            }else{
+                int sequentialCount = splitCommands(linePtr, ':', commandsSequential);
+                if(sequentialCount > 0){ //Then there is atleast one command
+
+                    for(int i = 0; i < commandsSequential; i++){
+                        if(commandsSequential[i] == NULL){
+                            perror("Error, a command string is NULL when reading sequential commands.");
+                            continue;
+                        }
+                        int commandsThreadedLen = split(commandsSequential[i], ';', commandsThreaded);
+                        pthread_t threads[commandsThreadedLen];
+                        int threadsLen = 0;
+                        for (int j = 0; j < commandsThreadedLen; j++)
+                        {
+                    }
+                }else{
+                    //gets(line);
+                    //continue;
+                }
+            }
+            
+        } 
+        else
+        {
             printf("Error ocurred when reading from the Input line\n");
             perror("Gets returned NULL. Either nothing has been entered or something went wrong.");
         }
-    }while(whileFlag);
+    } while (whileFlag);
+}
+
+int methodTests()
+{
+
+    printf("\nStarting by 117");
+    replace("murat", "hakan tekin", true, openFileForReadPlus("hehe.txt"));
+    exit(117);
+    return 132;
 }
 
 int main()
@@ -329,37 +417,44 @@ int main()
     printf("Hello World");
     bool whileFlag = true;
     printf("CMPE 382 - Project #1\nAuthor : Hakan Ahmet Tekin\n----------\n");
-    char line[MAX_LINE_LENGTH+1];
-    do
-    {
-        printf("inupt > ");
-        gets(line);
-       
-        if(!checkInputLengthValidity(line)) //if input size is bigger than 512 characters give error
-        {
-            printf("This input line is too big ( < %s characters ). Try entering a shorter version\n", MAX_LINE_LENGTH);
-        }
-        else
-        {
-            char *token = strtok(line, " ");
-            if(strcmp(token, "search") == 0){
-
-                token = strtok(NULL, " "); 
-                if(token != NULL){
-                    char *keyword = token;
-                    FILE *fp = openFileForReadPlus("hehe.txt");
-                    search(keyword,false, fp);
-
-                }else{
-                    printf("Not enough arguments");
-                }
-            }else if(token == "replace"){
-                
-            }else{
-                printf("Very unknown first argument entered, please enter the command correctly.\nEntered command is: -%s-\n", token);
-            }
-        }
-
-    } while (whileFlag);
+    char line[MAX_LINE_LENGTH + 1];
+    inputLoop();
     return 0;
+}
+
+
+//This method splits a line according to the delimeter and puts each substring in an array
+int splitCommands(char const *input, char const delim, char *Commands[])
+{
+
+        char *tofree = malloc(sizeof(char) * strlen(input));
+
+        if (input != NULL)
+        {
+                char *token;
+
+                strcpy(tofree, input);
+                token = strtok(tofree, &delim);
+                if (token == NULL)
+                {
+                        printf("%s is not a valid command. Try again\n", input);
+                        return 0;
+                }
+                Commands[0] = malloc(sizeof(char) * strlen(token));
+                strcpy(Commands[0], token);
+
+                int i = 1;
+                while (token != NULL)
+                {
+                        token = strtok(NULL, &delim);
+                        if (token == NULL)
+                        {
+                                break;
+                        }
+                        Commands[i] = malloc(sizeof(char) * strlen(token));
+                        strcpy(Commands[i], token);
+                        i++;
+                }
+                return i;
+        }
 }
