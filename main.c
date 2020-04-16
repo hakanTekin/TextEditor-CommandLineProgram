@@ -57,17 +57,17 @@ FILE* openFileForReadPlus(char *fileName)
 
 bool writeEntireFile(FILE *in, FILE *out)
 {
-    pthread_mutex_lock(&mutexLock);
+     
 
     rewind(in);
     rewind(out);
     char buffer[BUFFER_SIZE];
     //Write the new file into Input File
     while(fgets(buffer, BUFFER_SIZE, out))
-        fwrite(buffer, 1, strlen(buffer), in);
+         writingOperation(buffer, 1, strlen(buffer), in);
     return true;
 
-    pthread_mutex_unlock(&mutexLock);
+    
 }
 
 int lineCount(FILE *inFile){
@@ -135,7 +135,7 @@ int writingOperation(char *x, int y, int z, FILE *f){
 
 void replace(const char *keyword, const char *sourceKeyword, bool countFlag, FILE *inFile, char *optionalOutputFile)
 {
-    pthread_mutex_lock(&mutexLock);
+     
     printf("REPLACING %s with %s \n", sourceKeyword, keyword);
     char buffer[BUFFER_SIZE];
 
@@ -162,17 +162,18 @@ void replace(const char *keyword, const char *sourceKeyword, bool countFlag, FIL
                 if(Stop == NULL)
                 {
                     // Print the remaining text in the line
-                    fwrite(Start, 1, strlen(Start), Output);
+                     writingOperation(Start, 1, strlen(Start), Output);
+                    
                     break;
                 }
 
                 printf("Match starts at: %s\n", Stop);
 
                 // We have found a match!  Copy everything from [Start, Stop)
-                fwrite(Start, 1, Stop - Start, Output);
+                 writingOperation(Start, 1, Stop - Start, Output);
 
                 // Write our replacement text
-                fwrite(keyword, 1, strlen(keyword), Output);
+                 writingOperation(keyword, 1, strlen(keyword), Output);
 
                 // Next time, we want to start searching after our 'match'
                 Start = Stop + strlen(sourceKeyword);
@@ -194,12 +195,12 @@ void replace(const char *keyword, const char *sourceKeyword, bool countFlag, FIL
         //Remove the temp file
     remove(TEMP_FILE_NAME);
     fclose(Output);
-    pthread_mutex_unlock(&mutexLock);
+    
 }
 
 int insert(char keywordToInsert[], bool countFlag, bool afterFlag, char *keywordToInsertAfter, FILE *inFile, char *optionalOutputFile)
 { //The current program inserts after the word.
-    pthread_mutex_lock(&mutexLock);
+     
 
     char insertKeyword[BUFFER_SIZE];
 
@@ -224,7 +225,7 @@ int insert(char keywordToInsert[], bool countFlag, bool afterFlag, char *keyword
             if(Stop == NULL)
             {
                 // Print the remaining text in the line
-                fwrite(Start, 1, strlen(Start), Output);
+                 writingOperation(Start, 1, strlen(Start), Output);
                 break;
             }
             printf("Match starts at: %s\n", Stop);
@@ -232,13 +233,13 @@ int insert(char keywordToInsert[], bool countFlag, bool afterFlag, char *keyword
             // We have found a match!  Copy everything from [Start, Stop)
             if(afterFlag){
                 printf("PLACING AFTER\n");
-                fwrite(Start, 1, Stop - Start + strlen(keywordToInsertAfter), Output);
-                fwrite(keywordToInsert, 1, strlen(keywordToInsert), Output);
+                 writingOperation(Start, 1, Stop - Start + strlen(keywordToInsertAfter), Output);
+                 writingOperation(keywordToInsert, 1, strlen(keywordToInsert), Output);
             }else{
                 printf("PLACING BEFORE\n");
-                fwrite(Start, 1, Stop - Start, Output);
-                fwrite(keywordToInsert, 1, strlen(keywordToInsert), Output);
-                fwrite(keywordToInsertAfter, 1, strlen(keywordToInsertAfter), Output);
+                 writingOperation(Start, 1, Stop - Start, Output);
+                 writingOperation(keywordToInsert, 1, strlen(keywordToInsert), Output);
+                 writingOperation(keywordToInsertAfter, 1, strlen(keywordToInsertAfter), Output);
             }
             // Next time, we want to start searching after our 'match'
 
@@ -260,7 +261,7 @@ int insert(char keywordToInsert[], bool countFlag, bool afterFlag, char *keyword
     fclose(inFile);
     //remove(TEMP_FILE_NAME);//DONT REMOVE IF ANOTHER THREAD IS USING THIS
     //fclose(Output);
-    pthread_mutex_unlock(&mutexLock);
+    
 
     return 1;
 }
@@ -359,7 +360,7 @@ int showTailLines(FILE *inFile, int lineAmountToShow){
 
 int split(int charCount, FILE *inFile, char *optionalOutputFile){
 
-    pthread_mutex_lock(&mutexLock);
+     
 
     FILE *out = fopen("temp.txt", "w+");
     char buffer[BUFFER_SIZE];
@@ -376,7 +377,7 @@ int split(int charCount, FILE *inFile, char *optionalOutputFile){
         printf("writeee\n");
         if(buffer[strlen(buffer)-1] != '\n')//This is necessary. If the last char is a new line, it adds a second unnecessary line to the file without this check
             strcat(buffer, lineEndingChar);
-        fwrite(buffer, 1, charCount, out);
+         writingOperation(buffer, 1, charCount, out);
     }
 
      if(optionalOutputFile != NULL){
@@ -386,7 +387,7 @@ int split(int charCount, FILE *inFile, char *optionalOutputFile){
     else
         writeEntireFile(inFile,out);
 
-    pthread_mutex_unlock(&mutexLock);
+    
     return 123;
 }
 
