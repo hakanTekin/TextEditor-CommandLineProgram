@@ -33,6 +33,16 @@ char * trim_space(char *str) {
     *(end+1) = '\0';
     return str;
 }
+int writingOperation(char *x, int y, int z, FILE *f){
+
+    pthread_mutex_lock(&mutexLock);
+    //printf("LOCKED BY MUTEX -TM-\n");
+    int writtenLenght = fwrite(x, y, z, f);
+    pthread_mutex_unlock(&mutexLock);
+    //printf("UNLOCKED BY MUTEX -TM-\n");
+
+    return writtenLenght;
+}
 
 int splitCommands(const char *input, const char delim, char* Commands[]);
 
@@ -57,8 +67,6 @@ FILE* openFileForReadPlus(char *fileName)
 
 bool writeEntireFile(FILE *in, FILE *out)
 {
-     
-
     rewind(in);
     rewind(out);
     char buffer[BUFFER_SIZE];
@@ -66,8 +74,6 @@ bool writeEntireFile(FILE *in, FILE *out)
     while(fgets(buffer, BUFFER_SIZE, out))
          writingOperation(buffer, 1, strlen(buffer), in);
     return true;
-
-    
 }
 
 int lineCount(FILE *inFile){
@@ -124,20 +130,10 @@ void search(const char *keyword, bool countFlag, FILE *inFile)
     }
 }
 //TODO:FIX ALL fwrites with this.
-int writingOperation(char *x, int y, int z, FILE *f){
-
-    pthread_mutex_lock(&mutexLock);
-    printf("LOCKED BY MUTEX -TM-\n");
-    int writtenLenght = fwrite(x, y, z, f);
-    pthread_mutex_unlock(&mutexLock);
-    printf("UNLOCKED BY MUTEX -TM-\n");
-
-    return writtenLenght;
-}
 
 void replace(const char *keyword, const char *sourceKeyword, bool countFlag, FILE *inFile, char *optionalOutputFile)
 {
-     
+
     printf("REPLACING %s with %s \n", sourceKeyword, keyword);
     char buffer[BUFFER_SIZE];
 
@@ -165,7 +161,7 @@ void replace(const char *keyword, const char *sourceKeyword, bool countFlag, FIL
                 {
                     // Print the remaining text in the line
                      writingOperation(Start, 1, strlen(Start), Output);
-                    
+
                     break;
                 }
 
@@ -197,12 +193,12 @@ void replace(const char *keyword, const char *sourceKeyword, bool countFlag, FIL
         //Remove the temp file
     remove(TEMP_FILE_NAME);
     fclose(Output);
-    
+
 }
 
 int insert(char keywordToInsert[], bool countFlag, bool afterFlag, char *keywordToInsertAfter, FILE *inFile, char *optionalOutputFile)
 { //The current program inserts after the word.
-     
+
 
     char insertKeyword[BUFFER_SIZE];
 
@@ -263,7 +259,7 @@ int insert(char keywordToInsert[], bool countFlag, bool afterFlag, char *keyword
     fclose(inFile);
     //remove(TEMP_FILE_NAME);//DONT REMOVE IF ANOTHER THREAD IS USING THIS
     //fclose(Output);
-    
+
 
     return 1;
 }
@@ -362,7 +358,7 @@ int showTailLines(FILE *inFile, int lineAmountToShow){
 
 int split(int charCount, FILE *inFile, char *optionalOutputFile){
 
-     
+
 
     FILE *out = fopen("temp.txt", "w+");
     char buffer[BUFFER_SIZE];
@@ -389,7 +385,7 @@ int split(int charCount, FILE *inFile, char *optionalOutputFile){
     else
         writeEntireFile(inFile,out);
 
-    
+
     return 123;
 }
 
@@ -698,7 +694,7 @@ int batchedInputLoop(FILE *f){
                                     whileFlag = false;
                                 args[argsCount].fileName = fileName;
                                 args[argsCount].singleCommand = commandsThreaded[j];
-                               // printf("FileName just before thread is opened : -%s-\nCommand just before thread : -%s-\n", args.fileName, args.singleCommand);
+                                // printf("FileName just before thread is opened : -%s-\nCommand just before thread : -%s-\n", args.fileName, args.singleCommand);
                                 //printf("\n");
                                 rc[threadsLen] = pthread_create(&threads[threadsLen], NULL, parseSingleCommand, (void *)&args[argsCount++]);
                                 //sleep(2);

@@ -1,2 +1,2 @@
-insert mammedov murat hehe.txt : insert tekin hakan hehe.txt
+tail 5 ; head 5 ; mid 43 58 ; replace ipsum hakan ; insert ipsum TEKIIIN ; replace hakan aheiukahike ; replace ipsum hehe.txt
 exit
