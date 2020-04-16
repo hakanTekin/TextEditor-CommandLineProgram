@@ -306,7 +306,13 @@ int split(int charCount, FILE *inFile, char *optionalOutputFile){
             strcat(buffer, lineEndingChar);
         fwrite(buffer, 1, charCount, out);
     }
-    writeEntireFile(inFile, out);
+    
+     if(optionalOutputFile != NULL){
+            FILE *f = fopen(optionalOutputFile, "w+");
+            writeEntireFile(f,Output);
+    }
+    else
+        writeEntireFile(inFile,Output);
 }
 
 
