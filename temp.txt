@@ -1,7 +1,0 @@
-hakanmuroGLUED
-hakanmuro SEPERATE
-hakanmuro
-NEWLINE
-BEFOREhakanmuroAFTER
-
-

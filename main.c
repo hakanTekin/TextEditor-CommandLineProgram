@@ -15,6 +15,8 @@ struct thread_args
     char *fileName;
 };
 
+pthread_mutex_t mutexLock;
+
 //This function trims whitespaces from right and left. i.e. "   java  " --> "java"
 char * trim_space(char *str) {
     char *end;
@@ -55,6 +57,8 @@ FILE* openFileForReadPlus(char *fileName)
 
 bool writeEntireFile(FILE *in, FILE *out)
 {
+    pthread_mutex_lock(&mutexLock);
+
     rewind(in);
     rewind(out);
     char buffer[BUFFER_SIZE];
@@ -62,6 +66,8 @@ bool writeEntireFile(FILE *in, FILE *out)
     while(fgets(buffer, BUFFER_SIZE, out))
         fwrite(buffer, 1, strlen(buffer), in);
     return true;
+
+    pthread_mutex_unlock(&mutexLock);
 }
 
 int lineCount(FILE *inFile){
@@ -117,10 +123,19 @@ void search(const char *keyword, bool countFlag, FILE *inFile)
     return;
     }
 }
+//TODO:FIX ALL fwrites with this.
+int writingOperation(char *x, int y, int z, FILE *f){
+
+    pthread_mutex_lock(&mutexLock);
+    int writtenLenght = fwrite(x, y, z, f);
+    pthread_mutex_unlock(&mutexLock);
+
+    return writtenLenght;
+}
 
 void replace(const char *keyword, const char *sourceKeyword, bool countFlag, FILE *inFile, char *optionalOutputFile)
 {
-
+    pthread_mutex_lock(&mutexLock);
     printf("REPLACING %s with %s \n", sourceKeyword, keyword);
     char buffer[BUFFER_SIZE];
 
@@ -133,70 +148,68 @@ void replace(const char *keyword, const char *sourceKeyword, bool countFlag, FIL
     }
     else
     {
-         while(NULL != fgets(buffer, BUFFER_SIZE, inFile))
-    {
-        // For each incidence of "is"
-        char *Stop = NULL;    // Where to stop copying (at 'is')
-        char *Start = buffer; // Start at the beginning of the line, and after each match
-
-        while(1)
+        while(NULL != fgets(buffer, BUFFER_SIZE, inFile))
         {
-            // Find next match
-            Stop = strstr(Start, sourceKeyword);
+            // For each incidence of "is"
+            char *Stop = NULL;    // Where to stop copying (at 'is')
+            char *Start = buffer; // Start at the beginning of the line, and after each match
 
-            if(Stop == NULL)
+            while(1)
             {
-                // Print the remaining text in the line
-                fwrite(Start, 1, strlen(Start), Output);
-                break;
+                // Find next match
+                Stop = strstr(Start, sourceKeyword);
+
+                if(Stop == NULL)
+                {
+                    // Print the remaining text in the line
+                    fwrite(Start, 1, strlen(Start), Output);
+                    break;
+                }
+
+                printf("Match starts at: %s\n", Stop);
+
+                // We have found a match!  Copy everything from [Start, Stop)
+                fwrite(Start, 1, Stop - Start, Output);
+
+                // Write our replacement text
+                fwrite(keyword, 1, strlen(keyword), Output);
+
+                // Next time, we want to start searching after our 'match'
+                Start = Stop + strlen(sourceKeyword);
+
+                printf("Search resumes at: %s\n", Start);
             }
-
-            printf("Match starts at: %s\n", Stop);
-
-            // We have found a match!  Copy everything from [Start, Stop)
-            fwrite(Start, 1, Stop - Start, Output);
-
-            // Write our replacement text
-            fwrite(keyword, 1, strlen(keyword), Output);
-
-            // Next time, we want to start searching after our 'match'
-            Start = Stop + strlen(sourceKeyword);
-
-            printf("Search resumes at: %s\n", Start);
         }
-    }
-    // If desired, rename the Output file to the Input file
+        // If desired, rename the Output file to the Input file
 
-    if(optionalOutputFile != NULL){
-            FILE *f = fopen(optionalOutputFile, "w+");
-            writeEntireFile(f,Output);
-    }
-    else
-        writeEntireFile(inFile,Output);
+        if(optionalOutputFile != NULL){
+                FILE *f = fopen(optionalOutputFile, "w+");
+                writeEntireFile(f,Output);
+        }
+        else
+            writeEntireFile(inFile,Output);
     }
     // Close our files
     fclose(inFile);
         //Remove the temp file
     remove(TEMP_FILE_NAME);
     fclose(Output);
-
+    pthread_mutex_unlock(&mutexLock);
 }
 
-void insert(char keywordToInsert[], bool countFlag, bool afterFlag, char *keywordToInsertAfter, FILE *inFile, char *optionalOutputFile)
+int insert(char keywordToInsert[], bool countFlag, bool afterFlag, char *keywordToInsertAfter, FILE *inFile, char *optionalOutputFile)
 { //The current program inserts after the word.
-    
+    pthread_mutex_lock(&mutexLock);
+
     char insertKeyword[BUFFER_SIZE];
 
     char buffer[BUFFER_SIZE];
     FILE *Output = fopen(TEMP_FILE_NAME, "w+");
-    if(afterFlag == NULL) afterFlag = true;
-    if(countFlag == NULL) countFlag = false; //Default is not showing.
 
     if(keywordToInsert == NULL || keywordToInsertAfter == NULL || inFile == NULL || Output == NULL){
           printf("insert : Some value is not correct. Returning to main loop\n");
           return -78;
     }
-
     strcat(insertKeyword,keywordToInsert);
 
     while(fgets(buffer, BUFFER_SIZE, inFile)){
@@ -214,13 +227,19 @@ void insert(char keywordToInsert[], bool countFlag, bool afterFlag, char *keywor
                 fwrite(Start, 1, strlen(Start), Output);
                 break;
             }
-
             printf("Match starts at: %s\n", Stop);
 
             // We have found a match!  Copy everything from [Start, Stop)
-            fwrite(Start, 1, Stop - Start + strlen(keywordToInsertAfter), Output);
-
-            fwrite(keywordToInsert, 1, strlen(keywordToInsert), Output);
+            if(afterFlag){
+                printf("PLACING AFTER\n");
+                fwrite(Start, 1, Stop - Start + strlen(keywordToInsertAfter), Output);
+                fwrite(keywordToInsert, 1, strlen(keywordToInsert), Output);
+            }else{
+                printf("PLACING BEFORE\n");
+                fwrite(Start, 1, Stop - Start, Output);
+                fwrite(keywordToInsert, 1, strlen(keywordToInsert), Output);
+                fwrite(keywordToInsertAfter, 1, strlen(keywordToInsertAfter), Output);
+            }
             // Next time, we want to start searching after our 'match'
 
             Start = Stop + strlen(keywordToInsertAfter);
@@ -229,6 +248,7 @@ void insert(char keywordToInsert[], bool countFlag, bool afterFlag, char *keywor
 
         }
     }
+
 
     if(optionalOutputFile != NULL){
             FILE *f = fopen(optionalOutputFile, "w+");
@@ -240,17 +260,18 @@ void insert(char keywordToInsert[], bool countFlag, bool afterFlag, char *keywor
     fclose(inFile);
     //remove(TEMP_FILE_NAME);//DONT REMOVE IF ANOTHER THREAD IS USING THIS
     //fclose(Output);
-    return;
+    pthread_mutex_unlock(&mutexLock);
+
+    return 1;
 }
 
-void showHeadLines(FILE *inFile, int lineAmountToShow){
+int showHeadLines(FILE *inFile, int lineAmountToShow){
     int atLine = 1;
     char buffer[9999];
 
     if(inFile == NULL || lineAmountToShow == NULL || lineAmountToShow < 0){
         printf("Some value is not correct. Returning to main loop\n");
         return -76;
-    }
     }
 
     printf("\n---SHOWING FIRST %d LINES\n",lineAmountToShow);
@@ -260,10 +281,12 @@ void showHeadLines(FILE *inFile, int lineAmountToShow){
         printf("Line %d: %s\n", atLine, buffer);
         atLine++;
     }
+
+    return -213;
 }
 
-void showMidLines(FILE *inFile, int startLine, int endLine){
-    
+int showMidLines(FILE *inFile, int startLine, int endLine){
+
     int linesShown = 0;
     int atLine = 0;
     char buffer[9999];
@@ -281,7 +304,7 @@ void showMidLines(FILE *inFile, int startLine, int endLine){
     }
 
     int lineCountOfFile = lineCount(inFile);
-    if(lineCountOfFile > endLine - startLine +1){
+    if(lineCountOfFile < endLine - startLine +1){
         printf("WARNING : given input is larger than the line count. Showing entire file\n");
         endLine = lineCountOfFile;
         startLine = 0;
@@ -292,7 +315,7 @@ void showMidLines(FILE *inFile, int startLine, int endLine){
     while(fgets(buffer, BUFFER_SIZE, inFile)){
         atLine++;
         if(linesShown > endLine - startLine + 1) //Enough lines have been shown. Break out of the loop
-            return;
+            return 659;
         else if(atLine >= startLine && atLine <= endLine){
             printf("Line %d: %s\n", atLine, buffer);
             linesShown++;
@@ -301,9 +324,11 @@ void showMidLines(FILE *inFile, int startLine, int endLine){
             //Empty for now, maybe has a use, I dunno.
         }
     }
+
+    return 211;
 }
 
-void showTailLines(FILE *inFile, int lineAmountToShow){
+int showTailLines(FILE *inFile, int lineAmountToShow){
 
     if(inFile == NULL || lineAmountToShow == NULL ||lineAmountToShow < 0){
         printf("showTailLines : Some value is not correct. Returning to main loop\n");
@@ -321,7 +346,7 @@ void showTailLines(FILE *inFile, int lineAmountToShow){
         if(linesShown >= lineAmountToShow){
             //Code should never reach here.
             printf("ERROR : showTailLines method reached beyond the file but tried showing lines. Something is wrong.");
-            return;
+            return -156;
         }
         else if(atLine >= lineCountOfFile - lineAmountToShow + 1){
             printf("Line %d: %s\n", atLine, buffer);
@@ -334,6 +359,8 @@ void showTailLines(FILE *inFile, int lineAmountToShow){
 
 int split(int charCount, FILE *inFile, char *optionalOutputFile){
 
+    pthread_mutex_lock(&mutexLock);
+
     FILE *out = fopen("temp.txt", "w+");
     char buffer[BUFFER_SIZE];
     char *lineEndingChar = "\n";
@@ -344,6 +371,7 @@ int split(int charCount, FILE *inFile, char *optionalOutputFile){
     }
 
     charCount++;//So that termination char is added too
+
     while(fgets(buffer, charCount, inFile)){
         printf("writeee\n");
         if(buffer[strlen(buffer)-1] != '\n')//This is necessary. If the last char is a new line, it adds a second unnecessary line to the file without this check
@@ -353,10 +381,13 @@ int split(int charCount, FILE *inFile, char *optionalOutputFile){
 
      if(optionalOutputFile != NULL){
             FILE *f = fopen(optionalOutputFile, "w+");
-            writeEntireFile(f,Output);
+            writeEntireFile(f,out);
     }
     else
-        writeEntireFile(inFile,Output);
+        writeEntireFile(inFile,out);
+
+    pthread_mutex_unlock(&mutexLock);
+    return 123;
 }
 
 
@@ -433,9 +464,12 @@ void *parseSingleCommand(void *ptr){
         }
 
         if(strstr(args->singleCommand, "-a") != NULL) afterFlag = true;
-        else if(strstr(args->singleCommand, "-b") != NULL) afterFlag = false;
+        else if(strstr(args->singleCommand, "-b") != NULL){
+            printf("OH WOULD YOU LOOK AT THAT SOMEONE IS TRYING TO INSERT BEFORE THE WORD\n");
+            afterFlag = false;
+        }
 
-         if(keywordToInsertAfter == NULL || insertedKeyword == NULL)
+        if(keywordToInsertAfter == NULL || insertedKeyword == NULL)
             perror("Error. A necessary command is missing in replace command");
         char *name = NULL;
         if(strstr(args->singleCommand, ">") != NULL){
@@ -487,7 +521,7 @@ void *parseSingleCommand(void *ptr){
         showTailLines(openFileForReadPlus(args->fileName), lineCount);
 
     }else if(strcmp(mainCommand, "mid") == 0){
-        
+
         char *p = strtok(NULL, " ");
         char temp[50];
         strcpy(temp, p);
@@ -495,7 +529,6 @@ void *parseSingleCommand(void *ptr){
         int startLine = atoi(tempP);
 
         p = strtok(NULL, " ");
-        if
         strcpy(temp,p);
         tempP = trim_space(temp);
         int endLine = atoi(tempP);
@@ -527,7 +560,6 @@ char* getFileNameFromInputLine(char *l){
 }
 
 //search hakan hehe.txt : search ahmet hehe.txt ; search hakan hehe.txt
-
 
 int inputLoop(void)
 {
@@ -669,7 +701,7 @@ int batchedInputLoop(FILE *f){
                                 //sleep(2);
                                 printf("This rc value is : %d\n", rc[threadsLen]);
                                 //parseSingleCommand((void *) &args);
-                                if(rc[threadsLen] == 0){
+                                if(rc[threadsLen] != 0){
                                     perror("Error when opening thread.");
                                 }
                                 threadsLen++;
@@ -683,9 +715,7 @@ int batchedInputLoop(FILE *f){
                                 }else{
 
                                 }
-                                //printf("I wait is end for thread\n");
                             }
-                            //printf("\nJOINED ALL THREADS\n");
                         }
                     }
                 }else{
@@ -705,10 +735,9 @@ int batchedInputLoop(FILE *f){
 int methodTests()
 {
     printf("\nStarting by 117");
-
     struct thread_args args;
     args.fileName = "hehe.txt";
-    args.singleCommand = "insert muro hakan -c";
+    args.singleCommand = "insert muro hakan -b hehe.txt";
     parseSingleCommand(&args);
     //exit(117);
     return 132;
@@ -717,8 +746,8 @@ int methodTests()
 int main()
 {
     printf("CMPE 382 - Project #1\nAuthor : Hakan Ahmet Tekin\n----------\n");
-    methodTests();
-    //batchedInputLoop(fopen("batch.txt", "r+"));
+    //methodTests();
+    batchedInputLoop(fopen("batch.txt", "r+"));
     //inputLoop();
     return 0;
 }
