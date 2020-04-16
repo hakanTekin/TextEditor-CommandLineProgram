@@ -184,9 +184,19 @@ void replace(const char *keyword, const char *sourceKeyword, bool countFlag, FIL
 
 void insert(char keywordToInsert[], bool countFlag, bool afterFlag, char *keywordToInsertAfter, FILE *inFile, char *optionalOutputFile)
 { //The current program inserts after the word.
+    
     char insertKeyword[BUFFER_SIZE];
+
     char buffer[BUFFER_SIZE];
     FILE *Output = fopen(TEMP_FILE_NAME, "w+");
+    if(afterFlag == NULL) afterFlag = true;
+    if(countFlag == NULL) countFlag = false; //Default is not showing.
+
+    if(keywordToInsert == NULL || keywordToInsertAfter == NULL || inFile == NULL || Output == NULL){
+          printf("insert : Some value is not correct. Returning to main loop\n");
+          return -78;
+    }
+
     strcat(insertKeyword,keywordToInsert);
 
     while(fgets(buffer, BUFFER_SIZE, inFile)){
@@ -236,7 +246,16 @@ void insert(char keywordToInsert[], bool countFlag, bool afterFlag, char *keywor
 void showHeadLines(FILE *inFile, int lineAmountToShow){
     int atLine = 1;
     char buffer[9999];
+
+    if(inFile == NULL || lineAmountToShow == NULL || lineAmountToShow < 0){
+        printf("Some value is not correct. Returning to main loop\n");
+        return -76;
+    }
+    }
+
     printf("\n---SHOWING FIRST %d LINES\n",lineAmountToShow);
+
+
     while(fgets(buffer, BUFFER_SIZE, inFile) && atLine <= lineAmountToShow){
         printf("Line %d: %s\n", atLine, buffer);
         atLine++;
@@ -244,9 +263,15 @@ void showHeadLines(FILE *inFile, int lineAmountToShow){
 }
 
 void showMidLines(FILE *inFile, int startLine, int endLine){
+    
     int linesShown = 0;
     int atLine = 0;
     char buffer[9999];
+
+    if(inFile == NULL || startLine == NULL || endLine == NULL || startLine < 0 || endLine < 0){
+        printf("midLines : Some value is not correct. Returning to main loop\n");
+        return -74;
+    }
 
     //Extreme case handling. If starting line is smaller than end. Swap the values.
     if(endLine < startLine){
@@ -256,6 +281,12 @@ void showMidLines(FILE *inFile, int startLine, int endLine){
     }
 
     int lineCountOfFile = lineCount(inFile);
+    if(lineCountOfFile > endLine - startLine +1){
+        printf("WARNING : given input is larger than the line count. Showing entire file\n");
+        endLine = lineCountOfFile;
+        startLine = 0;
+    }
+
     rewind(inFile);
     printf("\nSHOWIN LINES BETWEEN %d-%d\n", startLine, endLine);
     while(fgets(buffer, BUFFER_SIZE, inFile)){
@@ -273,6 +304,12 @@ void showMidLines(FILE *inFile, int startLine, int endLine){
 }
 
 void showTailLines(FILE *inFile, int lineAmountToShow){
+
+    if(inFile == NULL || lineAmountToShow == NULL ||lineAmountToShow < 0){
+        printf("showTailLines : Some value is not correct. Returning to main loop\n");
+        return -72;
+    }
+
     int linesShown = 0;
     int atLine = 0;
     char buffer[9999];
@@ -296,9 +333,16 @@ void showTailLines(FILE *inFile, int lineAmountToShow){
 }
 
 int split(int charCount, FILE *inFile, char *optionalOutputFile){
+
     FILE *out = fopen("temp.txt", "w+");
     char buffer[BUFFER_SIZE];
     char *lineEndingChar = "\n";
+
+    if(out == NULL || charCount == NULL || charCount < 1 || inFile == NULL){
+        printf("Split method recieved something null, returning to main loop\n");
+        return -89;
+    }
+
     charCount++;//So that termination char is added too
     while(fgets(buffer, charCount, inFile)){
         printf("writeee\n");
@@ -306,7 +350,7 @@ int split(int charCount, FILE *inFile, char *optionalOutputFile){
             strcat(buffer, lineEndingChar);
         fwrite(buffer, 1, charCount, out);
     }
-    
+
      if(optionalOutputFile != NULL){
             FILE *f = fopen(optionalOutputFile, "w+");
             writeEntireFile(f,Output);
