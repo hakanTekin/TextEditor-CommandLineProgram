@@ -3,6 +3,7 @@
 #include "string.h"
 #include "stdlib.h"
 #include "pthread.h"
+#include <ctype.h>
 
 #define BUFFER_SIZE 1000
 #define MAX_LINE_LENGTH 512
@@ -13,6 +14,23 @@ struct thread_args
     char *singleCommand;
     char *fileName;
 };
+
+//This function trims whitespaces from right and left. i.e. "   java  " --> "java"
+char * trim_space(char *str) {
+    char *end;
+    /* skip leading whitespace */
+    while (isspace(*str)) {
+        str = str + 1;
+    }
+    /* remove trailing whitespace */
+    end = str + strlen(str) - 1;
+    while (end > str && isspace(*end)) {
+        end = end - 1;
+    }
+    /* write null character */
+    *(end+1) = '\0';
+    return str;
+}
 
 int splitCommands(const char *input, const char delim, char* Commands[]);
 
@@ -91,14 +109,16 @@ void search(const char *keyword, bool countFlag, FILE *inFile)
                 printf("\t\t->%s\n", str);
             }
         }
+
     if(countFlag)
         printf("\nOcurrence of %s is : %d\n", keyword, count);
     fclose(inFile);
+    printf("SEARCH METHOD IS COMPLETED\n");
     return;
     }
 }
 
-void replace(const char *keyword, const char *sourceKeyword, bool countFlag, FILE *inFile)
+void replace(const char *keyword, const char *sourceKeyword, bool countFlag, FILE *inFile, char *optionalOutputFile)
 {
     char buffer[BUFFER_SIZE];
 
@@ -107,7 +127,6 @@ void replace(const char *keyword, const char *sourceKeyword, bool countFlag, FIL
     if(inFile == NULL)
     {
         printf("File is not open!\n");
-
         return;
     }
     else
@@ -164,7 +183,12 @@ void replace(const char *keyword, const char *sourceKeyword, bool countFlag, FIL
     }
     // If desired, rename the Output file to the Input file
 
-    writeEntireFile(inFile,Output);
+    if(optionalOutputFile != NULL){
+            FILE *f = fopen(optionalOutputFile, "w+");
+            writeEntireFile(f,Output);
+    }
+    else
+        writeEntireFile(inFile,Output);
     }
     // Close our files
     fclose(inFile);
@@ -174,7 +198,7 @@ void replace(const char *keyword, const char *sourceKeyword, bool countFlag, FIL
 
 }
 
-void insert(char keywordToInsert[], bool countFlag, bool afterFlag, char *keywordToInsertAfter, FILE *inFile)
+void insert(char keywordToInsert[], bool countFlag, bool afterFlag, char *keywordToInsertAfter, FILE *inFile, char *optionalOutputFile)
 { //The current program inserts after the word.
     char insertKeyword[BUFFER_SIZE];
     char buffer[BUFFER_SIZE];
@@ -189,7 +213,7 @@ void insert(char keywordToInsert[], bool countFlag, bool afterFlag, char *keywor
         {
             // Find next match and move the pointer to the end of our target keyword
             Stop = strstr(Start, keywordToInsertAfter);
-
+            //
             if(Stop == NULL)
             {
                 // Print the remaining text in the line
@@ -212,12 +236,16 @@ void insert(char keywordToInsert[], bool countFlag, bool afterFlag, char *keywor
         }
     }
 
-    writeEntireFile(inFile, Output);
+    if(optionalOutputFile != NULL){
+            FILE *f = fopen(optionalOutputFile, "w+");
+            writeEntireFile(f,Output);
+    }
+    else
+        writeEntireFile(inFile,Output);
 
     fclose(inFile);
     //remove(TEMP_FILE_NAME);//DONT REMOVE IF ANOTHER THREAD IS USING THIS
     //fclose(Output);
-
     return;
 }
 
@@ -253,6 +281,7 @@ void showMidLines(FILE *inFile, int startLine, int endLine){
         else if(atLine >= startLine && atLine <= endLine){
             printf("Line %d: %s\n", atLine, buffer);
             linesShown++;
+
         }else{
             //Empty for now, maybe has a use, I dunno.
         }
@@ -282,7 +311,7 @@ void showTailLines(FILE *inFile, int lineAmountToShow){
     }
 }
 
-int split(int charCount, FILE *inFile){
+int split(int charCount, FILE *inFile, char *optionalOutputFile){
     FILE *out = fopen("temp.txt", "w+");
     char buffer[BUFFER_SIZE];
     char *lineEndingChar = "\n";
@@ -306,44 +335,63 @@ bool checkInputLengthValidity(char line[])
 }
 
 void *parseSingleCommand(void *ptr){
+    printf("PARSING SINGLE COMMAND FOR SOME REASON \n");
     struct thread_args *args = (struct thread_args *)ptr;
-    char *token = args->singleCommand;
-    printf("token is : %s\n", token);
+
+    char token[512];
+    strcpy(token,args->singleCommand);
+
     char *fileName = args->fileName;
     //Method gets a single char array containing one command as token, and the fileName it should be writing into
     char *mainCommand = strtok(token, " ");
-    if(strcmp(mainCommand, "search") == 0){
+    if(mainCommand == NULL)
+        printf("Main Command is null\n");
+    if(strcmp(mainCommand, "search") == 0){ ///SEARCH
         //The current code only checks for first 3 keywords. If there are, say 15; no error is shown.
         char *keyword = strtok(NULL, " ");
         bool countFlag = false;
 
-        if(strtok(NULL, " ") == "-c")
+        if(strstr(args->singleCommand, "-c") != NULL){
             countFlag = true;
+            printf("Search -c flag is now true \n");
+        }
 
         if(keyword == NULL)
             printf("Error keyword is null in search command\n, its token is %s\n", token);
 
         search(keyword, countFlag, openFileForReadPlus(fileName));
+        printf("REACHES HERE AT LEAST \n");
 
-    }else if(strcmp(mainCommand, "replace")==0){
+
+    }else if(strcmp(mainCommand, "replace")==0){ ///REPLACE
         char *targetKeyword = strtok(NULL, " ");
         char *sourceKeyword = strtok(NULL, " ");
         bool countFlag = false;
 
-        if(strtok(NULL, " ") == "-c")
+        if(strstr(args->singleCommand, "-c") != NULL){
             countFlag = true;
+            printf("Search -c flag is now true \n");
+        }
 
          if(targetKeyword == NULL || sourceKeyword == NULL)
             perror("Error. A necessary command is missing in replace command");
+        char *name = NULL;
+        if(strstr(token, ">") != NULL){
+            name = (strstr(token, ">"));
+            name = name +2;
+        }
 
-        replace(targetKeyword, sourceKeyword, countFlag, openFileForReadPlus(fileName));
+        replace(targetKeyword, sourceKeyword, countFlag, openFileForReadPlus(fileName), name);
 
     }else if(strcmp(mainCommand, "insert") == 0){
+
         char *insertedKeyword  = strtok(NULL, " ");
         bool countFlag = false;
 
-        if(strtok(NULL, " ") == "-c")
+        if(strstr(token, "-c") != NULL){
             countFlag = true;
+            printf("Flag is now true\n");
+        }
 
     }else if(strcmp(mainCommand, "lineCount") == 0){
 
@@ -359,6 +407,7 @@ void *parseSingleCommand(void *ptr){
         printf("Unknown main command entered. Please try again man");
         return NULL;
     }
+    //pthread_exit(NULL);
 }
 
 char* getFileNameFromInputLine(char *l){
@@ -369,7 +418,7 @@ char* getFileNameFromInputLine(char *l){
     if(p == NULL && strlen(l) != 0){
         return l; //If there is no space but there are chars, then there is only one word
     }else if (p && *(p + 1)){
-        printf("cis");
+        printf("c is ");
         return p+1;
     }
     else{
@@ -383,6 +432,7 @@ char* getFileNameFromInputLine(char *l){
 
 int inputLoop(void)
 {
+    printf("INPUT LOOP STARTS\n");
     char line[MAX_LINE_LENGTH];
     bool whileFlag = true;
     char *commandsSequential[512] = {NULL};
@@ -391,6 +441,7 @@ int inputLoop(void)
     char fileName[512] = {'\0'};
     do
     {
+        printf("\n");
         printf("command > ");
         if (fgets(line, 515, stdin))
         {
@@ -404,6 +455,7 @@ int inputLoop(void)
                 continue;
             }else{
                 int sequentialCount = splitCommands(linePtr, ':', commandsSequential);
+               // printf("SEQUENTIAL COUNT IS : %d\n" , sequentialCount);
                 if(sequentialCount > 0){ //Then there is atleast one command
                     for(int i = 0; i < sequentialCount; i++){
                         if(commandsSequential[i] == NULL){
@@ -413,27 +465,30 @@ int inputLoop(void)
                             int commandsThreadedLen = splitCommands(commandsSequential[i], ';', commandsThreaded);
 
                             pthread_t threads[commandsThreadedLen];
+                            printf("threaded COUNT IS : %d\n" , commandsThreadedLen);
                             for(int j = 0; j<commandsThreadedLen; j++){
                                 printf("\n>-%s-\n", commandsThreaded[j]);
                             }
                             int threadsLen = 0;
 
                             for(int j = 0; j<commandsThreadedLen; j++){
-                                if(strstr(commandsThreaded[j], "exit") != NULL)
+                                if(commandsThreaded[j] != NULL && strstr(commandsThreaded[j], "exit") != NULL)
                                     whileFlag = false;
                                 struct thread_args args;
                                 args.fileName = fileName;
                                 args.singleCommand = commandsThreaded[j];
-                                int rc = pthread_create(&threads[threadsLen++], NULL, parseSingleCommand, (void *)&args);
-                                if(rc){
+                                printf("\n");
+                                int rc = -1;
+                                rc = pthread_create(&threads[threadsLen++], NULL, parseSingleCommand, (void *)&args);
+                                //parseSingleCommand((void *) &args);
+                                if(rc != 0){
                                     perror("Error when opening thread.");
                                 }
-                            }
-
-                            for(int j = 0; j< threadsLen; j++){
+                                for(int j = 0; j< threadsLen; j++){
                                 pthread_join(threads[i], NULL);
+                                printf("I wait is end for thread\n");
                             }
-                            printf("\nJOINED ALL THREADS\n");
+                            }
                         }
                     }
                 }else{
@@ -441,70 +496,174 @@ int inputLoop(void)
                     //continue;
                 }
             }
-
         }
         else
         {
             printf("Error ocurred when reading from the Input line\n");
             perror("Gets error");
         }
-
+        printf("\n");
     } while (whileFlag);
+
     return 0;
+}
+
+
+int batchedInputLoop(FILE *f){
+    printf("BATCH LOOP STARTS\n");
+    char line[MAX_LINE_LENGTH];
+    bool whileFlag = true;
+    char *commandsSequential[9999] = {NULL};
+    char *commandsThreaded[9999] = {NULL};
+    char *linePtr;
+    char fileName[512] = {'\0'};
+
+    if(f == NULL){
+        perror("File NULL : ");
+         printf("FILE IS NULL, switching to input mode\n");
+         return inputLoop();
+    }
+    do
+    {
+        printf("\n");
+        if (fgets(line, 515, f))
+        {
+            if(line == NULL) exit(-99);
+            linePtr = line;
+            linePtr[strlen(linePtr)-1] = '\0';
+            //printf("Line is %s\n", linePtr);
+            char *tempFileName = getFileNameFromInputLine(linePtr);
+            if(tempFileName != NULL)
+            strcpy(fileName, tempFileName);
+            if(strlen(linePtr) > MAX_LINE_LENGTH){
+                perror("Error. This line is too long. Max length is 512");
+                continue;
+            }else{
+                int sequentialCount = splitCommands(linePtr, ':', commandsSequential);
+               // printf("SEQUENTIAL COUNT IS : %d\n" , sequentialCount);
+                if(sequentialCount > 0){ //Then there is atleast one command
+                    for(int i = 0; i < sequentialCount; i++){
+                        if(commandsSequential[i] == NULL){
+                            perror("Error, a command string is NULL when reading sequential commands.");
+                            continue;
+                        }else{
+                            int commandsThreadedLen = splitCommands(commandsSequential[i], ';', commandsThreaded);
+
+                            pthread_t threads[commandsThreadedLen+1];
+                            //printf("threaded COUNT IS : %d\n" , commandsThreadedLen);
+                            for(int j = 0; j<commandsThreadedLen; j++){
+                               // printf("\n>-%s-\n", commandsThreaded[j]);
+                            }
+
+                            int threadsLen = 0;
+                            int rc[50] = {-1};
+                            struct thread_args args[50];
+                            int argsCount = 0;
+                            for(int j = 0; j<commandsThreadedLen; j++){
+                                if(commandsThreaded[j] != NULL && strstr(commandsThreaded[j], "exit") != NULL)
+                                    whileFlag = false;
+                                args[argsCount].fileName = fileName;
+                                args[argsCount].singleCommand = commandsThreaded[j];
+                               // printf("FileName just before thread is opened : -%s-\nCommand just before thread : -%s-\n", args.fileName, args.singleCommand);
+                                //printf("\n");
+                                rc[threadsLen] = pthread_create(&threads[threadsLen], NULL, parseSingleCommand, (void *)&args[argsCount++]);
+                                //sleep(2);
+                                printf("This rc value is : %d\n", rc[threadsLen]);
+                                //parseSingleCommand((void *) &args);
+                                if(rc[threadsLen] == 0){
+                                    perror("Error when opening thread.");
+                                }
+                                threadsLen++;
+                            }
+                            for(int j = 0; j< threadsLen; j++){
+                                   // printf("thread : %d\n", threads[i]);
+
+                                if(rc[j] == 0 && threads[j] != NULL){
+                                    printf("\nWAITING FOR ONE THREAD\n");
+                                    pthread_join(threads[j], NULL);
+                                }else{
+
+                                }
+                                //printf("I wait is end for thread\n");
+                            }
+                            //printf("\nJOINED ALL THREADS\n");
+                        }
+                    }
+                }else{
+                    //gets(line);
+                    //continue;
+                }
+            }
+        }
+        else
+        {
+            printf("Error ocurred when reading from the Input line\n");
+        }
+        printf("\n");
+    } while (whileFlag);
 }
 
 int methodTests()
 {
-
     printf("\nStarting by 117");
     search("hakan", true, openFileForReadPlus("hehe.txt"));
-    replace("murat", "hakan tekin", true, openFileForReadPlus("hehe.txt"));
-    exit(117);
+    search("hakan", true, openFileForReadPlus("hehe.txt"));
+    search("hakan", true, openFileForReadPlus("hehe.txt"));
+    struct thread_args args;
+    args.fileName = "hehe.txt";
+    args.singleCommand = "search hakan -c";
+    parseSingleCommand(&args);
+    //exit(117);
     return 132;
 }
 
 int main()
 {
     printf("CMPE 382 - Project #1\nAuthor : Hakan Ahmet Tekin\n----------\n");
-    inputLoop();
+    //methodTests();
+    batchedInputLoop(fopen("batch.txt", "r+"));
+    //inputLoop();
     return 0;
 }
-
 
 //This method splits a line according to the delimeter and puts each substring in an array
 int splitCommands(const char *input, char delim, char *Commands[])
 {
 
-        char *tofree = malloc(sizeof(char) * strlen(input));
+    //printf("splitCommands : %s\n", input);
 
-        if (input != NULL)
+    char *tofree = malloc(sizeof(char) * strlen(input));
+
+    if (input != NULL)
+    {
+        char *token = NULL;
+        strcpy(tofree, input);
+        token = strtok(tofree, &delim);
+        if (token == NULL)
         {
-            char *token = NULL;
-            strcpy(tofree, input);
-            token = strtok(tofree, &delim);
-            if (token == NULL)
-            {
-                    printf("%s is not a valid command. Try again\n", input);
-                    return 0;
-            }
-            Commands[0] = malloc(sizeof(char) * strlen(token));
-            strcpy(Commands[0], token);
-            int i = 1;
-            while (token != NULL)
-            {
-                token = strtok(NULL, &delim);
-                if (token == NULL){
-                    continue;
-                }else{
-                Commands[i] = malloc(sizeof(char) * strlen(token));
-
-                strcpy(Commands[i], token);
-                i++;
-                }
-            }
-            return i;
-        }else{
-            printf("NULL input.\n");
-            return -1;
+                printf("%s is not a valid command. Try again\n", input);
+                return 0;
         }
+        if(token[0] == ' ') token = token +1;
+        Commands[0] = malloc(sizeof(char) * strlen(token)-1);
+        strcpy(Commands[0], token);
+        int i = 1;
+        while (token != NULL)
+        {
+            //printf("hEYYYY\n");
+            token = strtok(NULL, &delim);
+            if (token == NULL){
+                continue;
+            }else{
+            Commands[i] = malloc(sizeof(char) * strlen(token)-1);
+            if(token[0] == ' ') token = token +1;
+            strcpy(Commands[i], token);
+            i++;
+            }
+        }
+        return i;
+    }else{
+        printf("NULL input.\n");
+        return -1;
+    }
 }

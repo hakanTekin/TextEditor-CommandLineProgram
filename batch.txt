@@ -1,0 +1,2 @@
+search hakan : search ahmet ; search ahmet2 -c ; search ahmet3 -c hehe.txt
+exit
