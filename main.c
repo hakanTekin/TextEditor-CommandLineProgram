@@ -127,8 +127,10 @@ void search(const char *keyword, bool countFlag, FILE *inFile)
 int writingOperation(char *x, int y, int z, FILE *f){
 
     pthread_mutex_lock(&mutexLock);
+    printf("LOCKED BY MUTEX -TM-\n");
     int writtenLenght = fwrite(x, y, z, f);
     pthread_mutex_unlock(&mutexLock);
+    printf("UNLOCKED BY MUTEX -TM-\n");
 
     return writtenLenght;
 }
