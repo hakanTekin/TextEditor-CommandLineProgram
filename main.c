@@ -397,14 +397,60 @@ void *parseSingleCommand(void *ptr){
         insert(insertedKeyword,countFlag, afterFlag, keywordToInsertAfter, openFileForReadPlus(args->fileName),name);
 
     }else if(strcmp(mainCommand, "lineCount") == 0){
+        lineCount(openFileForReadPlus(args->fileName));
 
     }else if(strcmp(mainCommand, "split") == 0){
+        char *p = strtok(NULL, " ");
+        char temp[50];
+        strcpy(temp, p);
+        char *tempP = trim_space(temp);
+        int charCount = atoi(tempP);
+
+       char *name = NULL;
+
+        if(strstr(args->singleCommand, ">") != NULL){
+            printf("Alternate output file recognized. Results will be written.\n");
+            name = (strstr(token, ">"));
+            name = name +2;
+        }
+
+        split(charCount, openFileForReadPlus(args->fileName), name);
 
     }else if(strcmp(mainCommand, "head") == 0){
 
+        char *p = strtok(NULL, " ");
+        char temp[50];
+        strcpy(temp, p);
+        char *tempP = trim_space(temp);
+        int lineCount = atoi(tempP);
+
+        showHeadLines(openFileForReadPlus(args->fileName), lineCount);
+
     }else if(strcmp(mainCommand, "tail") == 0){
 
+        char *p = strtok(NULL, " ");
+        char temp[50];
+        strcpy(temp, p);
+        char *tempP = trim_space(temp);
+        int lineCount = atoi(tempP);
+
+        showTailLines(openFileForReadPlus(args->fileName), lineCount);
+
     }else if(strcmp(mainCommand, "mid") == 0){
+        
+        char *p = strtok(NULL, " ");
+        char temp[50];
+        strcpy(temp, p);
+        char *tempP = trim_space(temp);
+        int startLine = atoi(tempP);
+
+        p = strtok(NULL, " ");
+        if
+        strcpy(temp,p);
+        tempP = trim_space(temp);
+        int endLine = atoi(tempP);
+
+        showMidLines(openFileForReadPlus(args->fileName), startLine, endLine);
 
     }else{
         printf("Unknown main command entered. Please try again man");
