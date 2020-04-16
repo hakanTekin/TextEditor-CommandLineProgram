@@ -120,6 +120,8 @@ void search(const char *keyword, bool countFlag, FILE *inFile)
 
 void replace(const char *keyword, const char *sourceKeyword, bool countFlag, FILE *inFile, char *optionalOutputFile)
 {
+
+    printf("REPLACING %s with %s \n", sourceKeyword, keyword);
     char buffer[BUFFER_SIZE];
 
     FILE *Output = fopen(TEMP_FILE_NAME, "w+");
@@ -149,31 +151,13 @@ void replace(const char *keyword, const char *sourceKeyword, bool countFlag, FIL
                 break;
             }
 
-            // Write out everything between the end of the previous match, and the
-            // beginning of the current match.
-            //
-            // For example:
-            //
-            // "Jack is a pirate who is cool"
-            //
-            // Has two instances to replace.  In order, we'd find them as such:
-            //
-            // "Jack is a pirate who is cool"
-            //       ^
-            //                        ^
-            // What we want to do is write:
-            // - "Jack "
-            // - "was"
-            // - "a pirate who "
-            // - "was"
-            // - "cool"
             printf("Match starts at: %s\n", Stop);
 
             // We have found a match!  Copy everything from [Start, Stop)
             fwrite(Start, 1, Stop - Start, Output);
 
             // Write our replacement text
-            fwrite(keyword, 1, strlen(sourceKeyword), Output);
+            fwrite(keyword, 1, strlen(keyword), Output);
 
             // Next time, we want to start searching after our 'match'
             Start = Stop + strlen(sourceKeyword);
@@ -364,6 +348,7 @@ void *parseSingleCommand(void *ptr){
 
 
     }else if(strcmp(mainCommand, "replace")==0){ ///REPLACE
+        printf("REPLACE COMMAND RECIEVED \n");
         char *targetKeyword = strtok(NULL, " ");
         char *sourceKeyword = strtok(NULL, " ");
         bool countFlag = false;
@@ -377,6 +362,7 @@ void *parseSingleCommand(void *ptr){
             perror("Error. A necessary command is missing in replace command");
         char *name = NULL;
         if(strstr(token, ">") != NULL){
+            printf("Alternate output file recognized. Results will be written.\n");
             name = (strstr(token, ">"));
             name = name +2;
         }
@@ -606,12 +592,10 @@ int batchedInputLoop(FILE *f){
 int methodTests()
 {
     printf("\nStarting by 117");
-    search("hakan", true, openFileForReadPlus("hehe.txt"));
-    search("hakan", true, openFileForReadPlus("hehe.txt"));
-    search("hakan", true, openFileForReadPlus("hehe.txt"));
+
     struct thread_args args;
     args.fileName = "hehe.txt";
-    args.singleCommand = "search hakan -c";
+    args.singleCommand = "replace muro hakan -c";
     parseSingleCommand(&args);
     //exit(117);
     return 132;
@@ -620,8 +604,8 @@ int methodTests()
 int main()
 {
     printf("CMPE 382 - Project #1\nAuthor : Hakan Ahmet Tekin\n----------\n");
-    //methodTests();
-    batchedInputLoop(fopen("batch.txt", "r+"));
+    methodTests();
+    //batchedInputLoop(fopen("batch.txt", "r+"));
     //inputLoop();
     return 0;
 }
