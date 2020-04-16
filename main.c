@@ -361,7 +361,8 @@ void *parseSingleCommand(void *ptr){
          if(targetKeyword == NULL || sourceKeyword == NULL)
             perror("Error. A necessary command is missing in replace command");
         char *name = NULL;
-        if(strstr(token, ">") != NULL){
+
+        if(strstr(args->singleCommand, ">") != NULL){
             printf("Alternate output file recognized. Results will be written.\n");
             name = (strstr(token, ">"));
             name = name +2;
@@ -373,11 +374,27 @@ void *parseSingleCommand(void *ptr){
 
         char *insertedKeyword  = strtok(NULL, " ");
         bool countFlag = false;
+        bool afterFlag = true;
+        char *keywordToInsertAfter = strtok(NULL, " ");
 
-        if(strstr(token, "-c") != NULL){
+        if(strstr(args->singleCommand, "-c") != NULL){
             countFlag = true;
             printf("Flag is now true\n");
         }
+
+        if(strstr(args->singleCommand, "-a") != NULL) afterFlag = true;
+        else if(strstr(args->singleCommand, "-b") != NULL) afterFlag = false;
+
+         if(keywordToInsertAfter == NULL || insertedKeyword == NULL)
+            perror("Error. A necessary command is missing in replace command");
+        char *name = NULL;
+        if(strstr(args->singleCommand, ">") != NULL){
+            printf("Alternate output file recognized. Results will be written.\n");
+            name = (strstr(token, ">"));
+            name = name +2;
+        }
+
+        insert(insertedKeyword,countFlag, afterFlag, keywordToInsertAfter, openFileForReadPlus(args->fileName),name);
 
     }else if(strcmp(mainCommand, "lineCount") == 0){
 
@@ -595,7 +612,7 @@ int methodTests()
 
     struct thread_args args;
     args.fileName = "hehe.txt";
-    args.singleCommand = "replace muro hakan -c";
+    args.singleCommand = "insert muro hakan -c";
     parseSingleCommand(&args);
     //exit(117);
     return 132;
