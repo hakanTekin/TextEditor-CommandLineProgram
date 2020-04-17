@@ -17,6 +17,8 @@ struct thread_args
 
 pthread_mutex_t mutexLock;
 
+char optionalFileName[50] = {NULL}; //Initting it with empty so that i can check
+
 //This function trims whitespaces from right and left. i.e. "   java  " --> "java"
 char * trim_space(char *str) {
     char *end;
@@ -45,6 +47,7 @@ int writingOperation(char *x, int y, int z, FILE *f){
 }
 
 int splitCommands(const char *input, const char delim, char* Commands[]);
+
 
 FILE* openFileForReadPlus(char *fileName)
 {
@@ -470,9 +473,8 @@ void *multiWordParseSingleCommand(void *ptr){
 
         char newK[512] = {'\0'};
         printf("Search startirng\n");
-        if(keywordsptr[0] == NULL){
+        if(strlen(keywordsptr) > 0 keywordsptr[0] == NULL){
             printf("NULL WORD");
-
         }else{
         strcpy(newK, keywordsptr[0]);
         printf("Search startirng\n");
@@ -498,14 +500,22 @@ void *multiWordParseSingleCommand(void *ptr){
 
         if(strstr(args->singleCommand, ">") != NULL){
             printf("Alternate output file recognized. Results will be written.\n");
+            ///TODO: Save this filename for later sequential runs. Their input file will be this
             name = (strstr(token, ">"));
             name = name +2;
+            strncpy(optionalFileName,name, strstr(name, " ") - optionalFileName);
         }
-        char newK[512];
-        strcpy(newK, keywordsptr[0]);
-        char newK2[512];
-        strcpy(newK2, keywordsptr[1]);
-        replace(newK, newK2, countFlag, openFileForReadPlus(fileName), name);
+
+        if(strlen(keywordsptr) != 2) {
+            printf("Wrong number of keywords found exiting command\n");
+        }else{
+            char newK[512];
+            strcpy(newK, keywordsptr[0]);
+            char newK2[512];
+            strcpy(newK2, keywordsptr[1]);
+            replace(newK, newK2, countFlag, openFileForReadPlus(fileName), name);
+        }
+        
 
     }else if(strcmp(mainCommand, "insert") == 0){
 
@@ -532,13 +542,18 @@ void *multiWordParseSingleCommand(void *ptr){
             printf("Alternate output file recognized. Results will be written.\n");
             name = (strstr(token, ">"));
             name = name +2;
+            strncpy(optionalFileName,name, strstr(name, " ") - optionalFileName);
         }
-        char newK[512];
-        strcpy(newK, keywordsptr[0]);
-        char newK2[512];
-        strcpy(newK2, keywordsptr[1]);
-        printf("-%s-%s-\n", newK, newK2);
-        insert(newK,countFlag, afterFlag, newK2, openFileForReadPlus(args->fileName),name);
+        if(strlen(keywordsptr) != 2) {
+            printf("Wrong number of keywords found exiting command\n");
+        }else{
+            char newK[512];
+            strcpy(newK, keywordsptr[0]);
+            char newK2[512];
+            strcpy(newK2, keywordsptr[1]);
+            printf("-%s-%s-\n", newK, newK2);
+            insert(newK,countFlag, afterFlag, newK2, openFileForReadPlus(args->fileName),name);
+        }
 
     }else if(strcmp(mainCommand, "lineCount") == 0){
         lineCount(openFileForReadPlus(args->fileName));
@@ -554,8 +569,10 @@ void *multiWordParseSingleCommand(void *ptr){
 
         if(strstr(args->singleCommand, ">") != NULL){
             printf("Alternate output file recognized. Results will be written.\n");
+
             name = (strstr(token, ">"));
             name = name +2;
+            strncpy(optionalFileName,name, strstr(name, " ") - optionalFileName);
         }
         split(charCount, openFileForReadPlus(args->fileName), name);
 
@@ -653,6 +670,7 @@ void *parseSingleCommand(void *ptr){
             printf("Alternate output file recognized. Results will be written.\n");
             name = (strstr(token, ">"));
             name = name +2;
+            strncpy(optionalFileName,name, strstr(name, " ") - optionalFileName);
         }
 
         replace(targetKeyword, sourceKeyword, countFlag, openFileForReadPlus(fileName), name);
@@ -682,6 +700,7 @@ void *parseSingleCommand(void *ptr){
             printf("Alternate output file recognized. Results will be written.\n");
             name = (strstr(token, ">"));
             name = name +2;
+            strncpy(optionalFileName,name, strstr(name, " ") - optionalFileName);
         }
 
         insert(insertedKeyword,countFlag, afterFlag, keywordToInsertAfter, openFileForReadPlus(args->fileName),name);
@@ -702,6 +721,7 @@ void *parseSingleCommand(void *ptr){
             printf("Alternate output file recognized. Results will be written.\n");
             name = (strstr(token, ">"));
             name = name +2;
+            strncpy(optionalFileName,name, strstr(name, " ") - optionalFileName);
         }
 
         split(charCount, openFileForReadPlus(args->fileName), name);
@@ -901,20 +921,17 @@ int batchedInputLoop(FILE *f){
                                 if(commandsThreaded[j] != NULL && strstr(commandsThreaded[j], "exit") != NULL)
                                     whileFlag = false;
                                 args[argsCount].fileName = fileName;
+                                if(optionalFileName != NULL && strlen(optionalFileName) > 0) 
+                                    strcpy(strargs[argsCount].fileName, optionalFileName);
                                 args[argsCount].singleCommand = commandsThreaded[j];
-                                // printf("FileName just before thread is opened : -%s-\nCommand just before thread : -%s-\n", args.fileName, args.singleCommand);
-                                //printf("\n");
+
                                 rc[threadsLen] = pthread_create(&threads[threadsLen], NULL, multiWordParseSingleCommand, (void *)&args[argsCount++]);
-                                //sleep(2);
-                                //printf("This rc value is : %d\n", rc[threadsLen]);
-                                //parseSingleCommand((void *) &args);
                                 if(rc[threadsLen] != 0){
                                     perror("Error when opening thread.");
                                 }
                                 threadsLen++;
                             }
                             for(int j = 0; j< threadsLen; j++){
-                                   // printf("thread : %d\n", threads[i]);
                                 if(rc[j] == 0 && threads[j] != NULL){
                                     pthread_join(threads[j], NULL);
                                 }else{
