@@ -1,2 +1,4 @@
-replace "ahmet" "hakan" > yehav.txt : replace "tekin" "ahmet" hehe.txt
+replace "ahmet" "hakan" > yehav.txt : replace "tekin" "ahmet" : head 5 : insert "THISSHOULDBEINSERTEDAFTERTHEWHATEVERWASINSERTEDAFTERTHEWHATEVERWHATEVERWHATEVER " -b " AHMET " ; search "A" hehe.txt
+search "hakan" : search "ahmet" -c : insert "hakan" "ahmet" yehav.txt
+insert "spartan" -b "hakan" ; insert "-711 " -a "hakan" : split 5 : tail 3 ; search ahmet ; replace "hakan" "  hakan  " > hahah.txt ; insert " inserteeeed " " " hehe.txt
 exit

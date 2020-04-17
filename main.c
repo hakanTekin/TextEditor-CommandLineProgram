@@ -66,6 +66,7 @@ FILE *openFileForReadPlus(char *fileName)
     }
     else
     {
+        printf("File named %s is opened\n", fileName);
         rewind(fp);
         return fp;
     }
@@ -214,7 +215,7 @@ void replace(char *keyword, char *sourceKeyword, bool countFlag, FILE *inFile, c
 
 int insert(char keywordToInsert[], bool countFlag, bool afterFlag, char *keywordToInsertAfter, FILE *inFile, char *optionalOutputFile)
 { //The current program inserts after the word.
-    pthread_mutex_lock(&mutexLock);
+    //pthread_mutex_lock(&mutexLock);
     char insertKeyword[BUFFER_SIZE];
 
     printf("Inserting -%s- next to -%s-\n", keywordToInsert, keywordToInsertAfter);
@@ -244,7 +245,7 @@ int insert(char keywordToInsert[], bool countFlag, bool afterFlag, char *keyword
                 writingOperation(Start, 1, strlen(Start), Output);
                 break;
             }
-            
+
 
             // We have found a match!  Copy everything from [Start, Stop)
             if (afterFlag)
@@ -276,7 +277,7 @@ int insert(char keywordToInsert[], bool countFlag, bool afterFlag, char *keyword
     fclose(inFile);
     remove(TEMP_FILE_NAME); //DONT REMOVE IF ANOTHER THREAD IS USING THIS
     fclose(Output);
-    pthread_mutex_unlock(&mutexLock);
+    //pthread_mutex_unlock(&mutexLock);
     return 1;
 }
 
@@ -330,7 +331,7 @@ int showMidLines(FILE *inFile, int startLine, int endLine)
     }
 
     rewind(inFile);
-    
+
     while (fgets(buffer, BUFFER_SIZE, inFile))
     {
         atLine++;
@@ -447,7 +448,7 @@ char **getKeywordFromQuotationedLine(char line[], char *words[])
                 if (line[i] == '\"')
                 {
                     Stop = i;
-                    
+
                     words[wordCount] = malloc(sizeof(char) * (Stop - Start));
                     strncpy(words[wordCount], ptr, Stop - Start - 1);
                     wordCount++;
@@ -481,7 +482,7 @@ void *multiWordParseSingleCommand(void *ptr)
     char **keywordsptr = getKeywordFromQuotationedLine(args->singleCommand, keywords);
     //NEW PART
 
-    
+
 
     //Method gets a single char array containing one command as token, and the fileName it should be writing into
     char *mainCommand = strtok(token, " ");
@@ -506,17 +507,19 @@ void *multiWordParseSingleCommand(void *ptr)
             printf("Error keyword is null in search command\n, its token is %s\n", token);
 
         char newK[512] = {'\0'};
-        
+
         if (strlen(keywordsptr) > 0 && keywordsptr[0] == NULL)
         {
             printf("NULL WORD");
         }
         else
         {
-            strcpy(newK, keywordsptr[0]);
-            
-            search(newK, countFlag, openFileForReadPlus(fileName));
-            
+            printf("THIS IS THE SOURCE OF ERROR : -%s-\n", keywordsptr[0]);
+
+            if(keywordsptr[0] != NULL){
+                strcpy(newK, keywordsptr[0]);
+                search(newK, countFlag, openFileForReadPlus(fileName));
+            }
         }
     }
     else if (strcmp(mainCommand, "replace") == 0)
@@ -529,7 +532,7 @@ void *multiWordParseSingleCommand(void *ptr)
         if (strstr(args->singleCommand, "-c") != NULL)
         {
             countFlag = true;
-            
+
         }
 
         if (targetKeyword == NULL || sourceKeyword == NULL)
@@ -546,9 +549,9 @@ void *multiWordParseSingleCommand(void *ptr)
             char temp[50] = {'\0'};
             char *h2 = strstr(name, " ");
             strncpy(temp, name, h2 - h);
-            
+
             strcpy(optionalFileName, temp);
-            
+
         }
 
         if (strlen(keywordsptr) != 2)
@@ -575,7 +578,7 @@ void *multiWordParseSingleCommand(void *ptr)
         if (strstr(args->singleCommand, "-c") != NULL)
         {
             countFlag = true;
-            
+
         }
 
         if (strstr(args->singleCommand, "-a") != NULL)
@@ -583,7 +586,7 @@ void *multiWordParseSingleCommand(void *ptr)
 
         else if (strstr(args->singleCommand, "-b") != NULL)
         {
-            
+
             afterFlag = false;
         }
         if (keywordToInsertAfter == NULL || insertedKeyword == NULL)
@@ -637,9 +640,9 @@ void *multiWordParseSingleCommand(void *ptr)
             char temp[50] = {'\0'};
             char *h2 = strstr(name, " ");
             strncpy(temp, name, h2 - h);
-            
+
             strcpy(optionalFileName, temp);
-            
+
         }
 
         split(charCount, openFileForReadPlus(args->fileName), name);
@@ -717,18 +720,18 @@ void *parseSingleCommand(void *ptr)
         if (strstr(args->singleCommand, "-c") != NULL)
         {
             countFlag = true;
-            
+
         }
 
         if (keyword == NULL)
             printf("Error keyword is null in search command\n, its token is %s\n", token);
 
         search(keyword, countFlag, openFileForReadPlus(fileName));
-        
+
     }
     else if (strcmp(mainCommand, "replace") == 0)
     { ///REPLACE
-        
+
         char *targetKeyword = strtok(NULL, " ");
         char *sourceKeyword = strtok(NULL, " ");
         bool countFlag = false;
@@ -736,7 +739,7 @@ void *parseSingleCommand(void *ptr)
         if (strstr(args->singleCommand, "-c") != NULL)
         {
             countFlag = true;
-            
+
         }
 
         if (targetKeyword == NULL || sourceKeyword == NULL)
@@ -1027,7 +1030,6 @@ int batchedInputLoop(FILE *f)
             linePtr[strlen(linePtr) - 1] = '\0';
             //printf("Line is %s\n", linePtr);
             char *tempFileName = getFileNameFromInputLine(linePtr);
-            printf("-%s-\n", tempFileName);
             if (tempFileName != NULL)
                 strcpy(fileName, tempFileName);
             if (strlen(linePtr) > MAX_LINE_LENGTH)
@@ -1050,11 +1052,6 @@ int batchedInputLoop(FILE *f)
                         }
                         else
                         {
-                            if (optionalFileName != NULL && strlen(optionalFileName) > 0 && strcmp(optionalFileName, "\0") != 0)
-                            {
-                                strcpy(args[argsCount].fileName, optionalFileName);
-                                printf("Optional file entry found. The file is being treated as inputFile : -%s-\n", args[argsCount].fileName);
-                            }
                             int commandsThreadedLen = splitCommands(commandsSequential[i], ';', commandsThreaded);
 
                             pthread_t threads[commandsThreadedLen + 1];
@@ -1063,15 +1060,19 @@ int batchedInputLoop(FILE *f)
                             int rc[50] = {-1};
                             struct thread_args args[50];
                             int argsCount = 0;
-                            
+
+                            if (optionalFileName != NULL && strlen(optionalFileName) > 0 && strcmp(optionalFileName, "\0") != 0)
+                            {
+                                strcpy(args[argsCount].fileName, optionalFileName);
+                                printf("Optional file entry found. The file is being treated as inputFile : -%s-\n", args[argsCount].fileName);
+                            }
+
                             for (int j = 0; j < commandsThreadedLen; j++)
                             {
                                 if (commandsThreaded[j] != NULL && strstr(commandsThreaded[j], "exit") != NULL)
                                     whileFlag = false;
                                 args[argsCount].fileName = fileName;
-                                printf("FiNeLe : -%s-\n", optionalFileName);
                                 args[argsCount].singleCommand = commandsThreaded[j];
-
                                 rc[threadsLen] = pthread_create(&threads[threadsLen], NULL, multiWordParseSingleCommand, (void *)&args[argsCount++]);
                                 if (rc[threadsLen] != 0)
                                 {
@@ -1116,11 +1117,26 @@ int methodTests()
     return 132;
 }
 
-int main()
+int main(char *fileName)
 {
     printf("CMPE 382 - Project #1\nAuthor : Hakan Ahmet Tekin\n----------\n");
     //methodTests();
-    batchedInputLoop(fopen("batch.txt", "r+"));
+    FILE *f = fopen(fileName, "r+");
+    if(f == NULL){
+        printf("Main function could not open a specified input file. Trying open default file batch.txt\n");
+        f = fopen("batch.txt", "r+");
+        if(f == NULL){
+            printf("Main function could not open the default input file. Program Exits\n");
+            exit(-111);
+        }else{
+            printf("batch.txt is open beginning program\n");
+            batchedInputLoop(f);
+        }
+    }else{
+        printf("->%s is open beginning program\n", fileName);
+        batchedInputLoop(f);
+    }
+
     //inputLoop();
     return 0;
 }
