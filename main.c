@@ -17,7 +17,7 @@ struct thread_args
 
 pthread_mutex_t mutexLock;
 
-char optionalFileName[50] = {NULL}; //Initting it with empty so that i can check
+char optionalFileName[50] = {'\0'}; //Initting it with empty so that i can check
 
 //This function trims whitespaces from right and left. i.e. "   java  " --> "java"
 char * trim_space(char *str) {
@@ -54,6 +54,8 @@ FILE* openFileForReadPlus(char *fileName)
 
     if(fileName[strlen(fileName)-1] == '\n')
         fileName[strlen(fileName)-1] = '\0';
+    printf("-%s- is the crurrent output\n", optionalFileName);
+    printf("THE NAME OF THE FILE THE BEING OPENED THE IS : -%s-\n", fileName);
     FILE *fp = fopen(fileName, "r+");
     if(fp == NULL)
     {
@@ -183,9 +185,14 @@ void replace(char *keyword, char *sourceKeyword, bool countFlag, FILE *inFile, c
         }
         // If desired, rename the Output file to the Input file
 
-        if(optionalOutputFile != NULL){
-                FILE *f = fopen(optionalOutputFile, "w+");
-                writeEntireFile(f,Output);
+        if(optionalOutputFile != NULL && optionalOutputFile[0] != '\0'){
+                FILE *f = fopen(optionalOutputFile, "r+");
+                if(f == NULL){
+                    writeEntireFile(inFile, Output);
+                }else{
+                    writeEntireFile(f,Output);
+                    fclose(f);
+                }
         }
         else
             writeEntireFile(inFile,Output);
@@ -200,6 +207,7 @@ void replace(char *keyword, char *sourceKeyword, bool countFlag, FILE *inFile, c
 
 int insert(char keywordToInsert[], bool countFlag, bool afterFlag, char *keywordToInsertAfter, FILE *inFile, char *optionalOutputFile)
 { //The current program inserts after the word.
+    pthread_mutex_lock(&mutexLock);
     char insertKeyword[BUFFER_SIZE];
 
     printf("INSERT METHOD CALLED\n");
@@ -225,21 +233,19 @@ int insert(char keywordToInsert[], bool countFlag, bool afterFlag, char *keyword
 
             if(Stop == NULL)
             {
-                printf("JELLICAL2-1\n");
                 // Print the remaining text in the line
-                 writingOperation(Start, 1, strlen(Start), Output);
-                 printf("JELLICAL2-2\n");
+                printf("JUST BEFORE WRITE\n");
+                writingOperation(Start, 1, strlen(Start), Output);
+                printf("JUST WRITE\n");
                 break;
             }
             printf("Match starts at: %s\n", Stop);
 
             // We have found a match!  Copy everything from [Start, Stop)
             if(afterFlag){
-                printf("PLACING AFTER\n");
                  writingOperation(Start, 1, Stop - Start + strlen(keywordToInsertAfter), Output);
                  writingOperation(keywordToInsert, 1, strlen(keywordToInsert), Output);
             }else{
-                printf("PLACING BEFORE\n");
                  writingOperation(Start, 1, Stop - Start, Output);
                  writingOperation(keywordToInsert, 1, strlen(keywordToInsert), Output);
                  writingOperation(keywordToInsertAfter, 1, strlen(keywordToInsertAfter), Output);
@@ -247,10 +253,6 @@ int insert(char keywordToInsert[], bool countFlag, bool afterFlag, char *keyword
             // Next time, we want to start searching after our 'match'
 
             Start = Stop + strlen(keywordToInsertAfter);
-
-            printf("Search resumes at: %s\n", Start);
-            printf("DONE LOOP\n");
-
         }
     }
 
@@ -258,6 +260,7 @@ int insert(char keywordToInsert[], bool countFlag, bool afterFlag, char *keyword
     if(optionalOutputFile != NULL){
             FILE *f = fopen(optionalOutputFile, "w+");
             writeEntireFile(f,Output);
+            fclose(f);
     }
     else
         writeEntireFile(inFile,Output);
@@ -265,6 +268,7 @@ int insert(char keywordToInsert[], bool countFlag, bool afterFlag, char *keyword
     fclose(inFile);
     remove(TEMP_FILE_NAME);//DONT REMOVE IF ANOTHER THREAD IS USING THIS
     fclose(Output);
+    pthread_mutex_unlock(&mutexLock);
     return 1;
 }
 
@@ -473,7 +477,7 @@ void *multiWordParseSingleCommand(void *ptr){
 
         char newK[512] = {'\0'};
         printf("Search startirng\n");
-        if(strlen(keywordsptr) > 0 keywordsptr[0] == NULL){
+        if(strlen(keywordsptr) > 0 && keywordsptr[0] == NULL){
             printf("NULL WORD");
         }else{
         strcpy(newK, keywordsptr[0]);
@@ -500,10 +504,16 @@ void *multiWordParseSingleCommand(void *ptr){
 
         if(strstr(args->singleCommand, ">") != NULL){
             printf("Alternate output file recognized. Results will be written.\n");
-            ///TODO: Save this filename for later sequential runs. Their input file will be this
-            name = (strstr(token, ">"));
+
+            name = strstr(args->singleCommand, ">");
             name = name +2;
-            strncpy(optionalFileName,name, strstr(name, " ") - optionalFileName);
+            char *h = name;
+            char temp[50] = {'\0'};
+            char *h2 = strstr(name, " ");
+            strncpy(temp,name, h2-h);
+            printf("WRITING NOW\n");
+            strcpy(optionalFileName, temp);
+            printf("WRITING END : -%s-\n", optionalFileName);
         }
 
         if(strlen(keywordsptr) != 2) {
@@ -515,7 +525,7 @@ void *multiWordParseSingleCommand(void *ptr){
             strcpy(newK2, keywordsptr[1]);
             replace(newK, newK2, countFlag, openFileForReadPlus(fileName), name);
         }
-        
+
 
     }else if(strcmp(mainCommand, "insert") == 0){
 
@@ -530,19 +540,22 @@ void *multiWordParseSingleCommand(void *ptr){
         }
 
         if(strstr(args->singleCommand, "-a") != NULL) afterFlag = true;
+
         else if(strstr(args->singleCommand, "-b") != NULL){
             printf("OH WOULD YOU LOOK AT THAT SOMEONE IS TRYING TO INSERT BEFORE THE WORD\n");
             afterFlag = false;
         }
-        printf("1\n");
         if(keywordToInsertAfter == NULL || insertedKeyword == NULL)
             perror("Error. A necessary command is missing in replace command");
         char *name = NULL;
         if(strstr(args->singleCommand, ">") != NULL){
             printf("Alternate output file recognized. Results will be written.\n");
-            name = (strstr(token, ">"));
+            name = (strstr(args->singleCommand, ">"));
             name = name +2;
-            strncpy(optionalFileName,name, strstr(name, " ") - optionalFileName);
+            char *h = name;
+            char temp[50] = {'\0'};
+            char *h2 = strstr(name, " ");
+            strncpy(temp,name, h2-h);
         }
         if(strlen(keywordsptr) != 2) {
             printf("Wrong number of keywords found exiting command\n");
@@ -552,6 +565,8 @@ void *multiWordParseSingleCommand(void *ptr){
             char newK2[512];
             strcpy(newK2, keywordsptr[1]);
             printf("-%s-%s-\n", newK, newK2);
+
+            printf("THE FILE BEING TREATED AS inFile : %s\n", args->fileName);
             insert(newK,countFlag, afterFlag, newK2, openFileForReadPlus(args->fileName),name);
         }
 
@@ -773,10 +788,12 @@ char* getFileNameFromInputLine(char *l){
     strcpy(line, l);
     char fileName[512];
     char *p = strrchr(line, ' ');
+
+    printf("<<<-%s->>>", l);
     if(p == NULL && strlen(l) != 0){
         return l; //If there is no space but there are chars, then there is only one word
     }else if (p && *(p + 1)){
-        printf("c is ");
+        printf("c is %s\n", p+1);
         return p+1;
     }
     else{
@@ -890,12 +907,14 @@ int batchedInputLoop(FILE *f){
                 exit(78);
             }
             if(line == NULL) exit(-99);
+            optionalFileName[0] = '\0';
             linePtr = line;
             linePtr[strlen(linePtr)-1] = '\0';
             //printf("Line is %s\n", linePtr);
             char *tempFileName = getFileNameFromInputLine(linePtr);
+            printf("-%s-\n", tempFileName);
             if(tempFileName != NULL)
-            strcpy(fileName, tempFileName);
+                strcpy(fileName, tempFileName);
             if(strlen(linePtr) > MAX_LINE_LENGTH){
                 perror("Error. This line is too long. Max length is 512");
                 continue;
@@ -921,8 +940,11 @@ int batchedInputLoop(FILE *f){
                                 if(commandsThreaded[j] != NULL && strstr(commandsThreaded[j], "exit") != NULL)
                                     whileFlag = false;
                                 args[argsCount].fileName = fileName;
-                                if(optionalFileName != NULL && strlen(optionalFileName) > 0) 
-                                    strcpy(strargs[argsCount].fileName, optionalFileName);
+                                printf("FiNeLe : -%s-\n", optionalFileName);
+                                if(optionalFileName != NULL && strlen(optionalFileName) > 0 && strcmp(optionalFileName, "\0") != 0){
+                                    printf("IT never be\n");
+                                    strcpy(args[argsCount].fileName, optionalFileName);
+                                }
                                 args[argsCount].singleCommand = commandsThreaded[j];
 
                                 rc[threadsLen] = pthread_create(&threads[threadsLen], NULL, multiWordParseSingleCommand, (void *)&args[argsCount++]);
@@ -974,9 +996,7 @@ int main()
 //This method splits a line according to the delimeter and puts each substring in an array
 int splitCommands(const char *input, char delim, char *Commands[])
 {
-
     //printf("splitCommands : %s\n", input);
-
     char *tofree = malloc(sizeof(char) * strlen(input) * 10);
 
     if (input != NULL)

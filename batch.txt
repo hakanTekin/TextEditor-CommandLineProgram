@@ -1,21 +1,2 @@
-insert " a" "hakan" hehe.txt
-insert " pe" "hakan" hehe.txt
-insert " pin" "hakan" hehe.txt
-insert " ping" "hakan" hehe.txt
-insert " pingu" "hakan" hehe.txt
-insert " pingui" "hakan" hehe.txt
-insert " uwuwuwuwuwuwuwuwuuw" "hakan" -b hehe.txt
-insert " wuwuwuwuwwuwuwuwwuwuwuw" "hakan" -b hehe.txt
-insert " pinguieaiueaa" "hakan" hehe.txt
-insert " heheeauieakeuilmaueiyklymeua" "hakan" : insert " heheeauieakeuilmaueiyklymeua" "hakan" : insert " heheeauieakeuilmaueiyklymeua" "hakan" : insert " heheeauieakeuilmaueiyklymeua" "hakan" : insert " heheeauieakeuilmaueiyklymeua" "hakan" : insert " heheeaui\n\neake       uilmaueiyklymeua" "hakan" : insert " heheeauieakeuilmaueiyklymeua" "hakan" : insert " heheeauieakeuilmaueiyklymeua" "hakan" : insert "  sayin yarak basi  " "hakan" : hehe.txt
-
-a eiulkaeiumly akei kuym kaeiuk
-aiulmeyakeiul kmu aİU;: ieau kmlya iuE; :AEUİ u EMkmeiu takuei "  """ Malyu E: A:UEİ A:U euisma ğgA;Eiu;UEA keuaeiula mkueila.itxteaxuiealmuei kau şaikmh
-
-insert " heheeauieakeuilmaueiyklymeua" "hakan" ; insert " heheeauieakeuilmaueiyk
-lymeua" "hakan" ; insert " heheeauieakeuilmaueiyklymeua" "hakan" ; insert " heheeauieakeuilmaueiyklymeua" "hakan" ; insert " heheeauieakeuilmaueiyklymeua" "hakan" ; insert " heheeaui\n\neake       uilmaueiyklymeua" "hakan" ; insert " heheeauieakeuilmaueiyklymeua" "hakan" ; insert " heheeauieakeuilmaueiyklymeua" "hakan" ; insert "  sayin yarak basi  " "hakan" ; hehe.txt
-
-       iea
-
-search "ice tea" -chehe.txt
+replace "ahmet" "hakan" > yehav.txt : replace "tekin" "ahmet" hehe.txt
 exit
