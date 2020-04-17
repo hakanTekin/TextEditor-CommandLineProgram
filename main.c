@@ -514,8 +514,6 @@ void *multiWordParseSingleCommand(void *ptr)
         }
         else
         {
-            printf("THIS IS THE SOURCE OF ERROR : -%s-\n", keywordsptr[0]);
-
             if(keywordsptr[0] != NULL){
                 strcpy(newK, keywordsptr[0]);
                 search(newK, countFlag, openFileForReadPlus(fileName));
@@ -1117,11 +1115,12 @@ int methodTests()
     return 132;
 }
 
-int main(char *fileName)
+int main(int argc, char *argv[])
 {
     printf("CMPE 382 - Project #1\nAuthor : Hakan Ahmet Tekin\n----------\n");
     //methodTests();
-    FILE *f = fopen(fileName, "r+");
+    if(argc == 1){
+            FILE *f = fopen(argv[0], "r+");
     if(f == NULL){
         printf("Main function could not open a specified input file. Trying open default file batch.txt\n");
         f = fopen("batch.txt", "r+");
@@ -1133,10 +1132,14 @@ int main(char *fileName)
             batchedInputLoop(f);
         }
     }else{
-        printf("->%s is open beginning program\n", fileName);
+        printf("->%s is open beginning program\n", argv[0]);
         batchedInputLoop(f);
     }
-
+    }else{
+        printf("Something is Wrong\n");
+        FILE *f = fopen("batch.txt", "r+");
+        batchedInputLoop(f);
+    }
     //inputLoop();
     return 0;
 }
