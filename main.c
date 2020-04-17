@@ -398,6 +398,190 @@ bool checkInputLengthValidity(char line[])
         return false;
 }
 
+char** getKeywordFromQuotationedLine(char line[], char *words[]){
+    int wordCount = 0;
+    int Start = -1;
+    int Stop = -1;
+    char *ptr = &line;
+    for(int i = 0; i< strlen(line); i++){
+        if(line[i] == '\"'){
+            ptr = &line[i+1];
+            Start = i;
+            i++;
+            for(; i<strlen(line); i++){
+                if(line[i] == '\"'){
+                    Stop = i;
+                    printf("Copied %s\n", words[wordCount-1]);
+                    words[wordCount] = malloc(sizeof(char) * (Stop-Start));
+                    strncpy(words[wordCount], ptr, Stop - Start - 1);
+                    wordCount++;
+                    printf("Copied %s\n", words[wordCount-1]);
+                    break;
+                }
+            }
+        }
+    }
+  return words;
+}
+
+void *multiWordParseSingleCommand(void *ptr){
+    printf("PARSING SINGLE COMMAND FOR SOME REASON \n");
+    struct thread_args *args = (struct thread_args *)ptr;
+
+    char token[512];
+    strcpy(token,args->singleCommand);
+
+    char *fileName = args->fileName;
+
+    //NEW PART
+    char *keywords[512] = {NULL};
+    char **ptr = getKeywordFromQuotationedLine(args->singleCommand, keywords);
+    //NEW PART
+
+    //Method gets a single char array containing one command as token, and the fileName it should be writing into
+    char *mainCommand = strtok(token, " ");
+    if(mainCommand == NULL)
+        printf("Main Command is null\n");
+
+
+    if(strcmp(mainCommand, "search") == 0){ ///SEARCH
+        //The current code only checks for first 3 keywords. If there are, say 15; no error is shown.
+        char *keyword = strtok(NULL, " ");
+        bool countFlag = false;
+
+        if(strstr(args->singleCommand, "-c") != NULL){
+            countFlag = true;
+            printf("Search -c flag is now true \n");
+        }
+
+        if(keyword == NULL)
+            printf("Error keyword is null in search command\n, its token is %s\n", token);
+            char newK[512];
+            strcpy(newK, keywords[0]);
+        search(newK, countFlag, openFileForReadPlus(fileName));
+        printf("REACHES HERE AT LEAST \n");
+
+
+    }else if(strcmp(mainCommand, "replace")==0){ ///REPLACE
+        printf("REPLACE COMMAND RECIEVED \n");
+        char *targetKeyword = strtok(NULL, " ");
+        char *sourceKeyword = strtok(NULL, " ");
+        bool countFlag = false;
+
+        if(strstr(args->singleCommand, "-c") != NULL){
+            countFlag = true;
+            printf("Search -c flag is now true \n");
+        }
+
+         if(targetKeyword == NULL || sourceKeyword == NULL)
+            perror("Error. A necessary command is missing in replace command");
+        char *name = NULL;
+
+        if(strstr(args->singleCommand, ">") != NULL){
+            printf("Alternate output file recognized. Results will be written.\n");
+            name = (strstr(token, ">"));
+            name = name +2;
+        }
+        char newK[512];
+        strcpy(newK, keywords[0]);
+        char newK2[512];
+        strcpy(newK2, keywords[1]);
+        replace(newK, newK2, countFlag, openFileForReadPlus(fileName), name);
+
+    }else if(strcmp(mainCommand, "insert") == 0){
+
+        char *insertedKeyword  = strtok(NULL, " ");
+        bool countFlag = false;
+        bool afterFlag = true;
+        char *keywordToInsertAfter = strtok(NULL, " ");
+
+        if(strstr(args->singleCommand, "-c") != NULL){
+            countFlag = true;
+            printf("Flag is now true\n");
+        }
+
+        if(strstr(args->singleCommand, "-a") != NULL) afterFlag = true;
+        else if(strstr(args->singleCommand, "-b") != NULL){
+            printf("OH WOULD YOU LOOK AT THAT SOMEONE IS TRYING TO INSERT BEFORE THE WORD\n");
+            afterFlag = false;
+        }
+
+        if(keywordToInsertAfter == NULL || insertedKeyword == NULL)
+            perror("Error. A necessary command is missing in replace command");
+        char *name = NULL;
+        if(strstr(args->singleCommand, ">") != NULL){
+            printf("Alternate output file recognized. Results will be written.\n");
+            name = (strstr(token, ">"));
+            name = name +2;
+        }
+        char newK[512];
+        strcpy(newK, keywords[0]);
+        char newK2[512];
+        strcpy(newK2, keywords[1]);
+        insert(newK,countFlag, afterFlag, newK2, openFileForReadPlus(args->fileName),name);
+
+    }else if(strcmp(mainCommand, "lineCount") == 0){
+        lineCount(openFileForReadPlus(args->fileName));
+
+    }else if(strcmp(mainCommand, "split") == 0){
+        char *p = strtok(NULL, " ");
+        char temp[50];
+        strcpy(temp, p);
+        char *tempP = trim_space(temp);
+        int charCount = atoi(tempP);
+
+       char *name = NULL;
+
+        if(strstr(args->singleCommand, ">") != NULL){
+            printf("Alternate output file recognized. Results will be written.\n");
+            name = (strstr(token, ">"));
+            name = name +2;
+        }
+
+        split(charCount, openFileForReadPlus(args->fileName), name);
+
+    }else if(strcmp(mainCommand, "head") == 0){
+
+        char *p = strtok(NULL, " ");
+        char temp[50];
+        strcpy(temp, p);
+        char *tempP = trim_space(temp);
+        int lineCount = atoi(tempP);
+
+        showHeadLines(openFileForReadPlus(args->fileName), lineCount);
+
+    }else if(strcmp(mainCommand, "tail") == 0){
+
+        char *p = strtok(NULL, " ");
+        char temp[50];
+        strcpy(temp, p);
+        char *tempP = trim_space(temp);
+        int lineCount = atoi(tempP);
+
+        showTailLines(openFileForReadPlus(args->fileName), lineCount);
+
+    }else if(strcmp(mainCommand, "mid") == 0){
+
+        char *p = strtok(NULL, " ");
+        char temp[50];
+        strcpy(temp, p);
+        char *tempP = trim_space(temp);
+        int startLine = atoi(tempP);
+
+        p = strtok(NULL, " ");
+        strcpy(temp,p);
+        tempP = trim_space(temp);
+        int endLine = atoi(tempP);
+
+        showMidLines(openFileForReadPlus(args->fileName), startLine, endLine);
+
+    }else{
+        printf("Unknown main command entered. Please try again man");
+        return NULL;
+    }
+    //pthread_exit(NULL);
+}
+
 void *parseSingleCommand(void *ptr){
     printf("PARSING SINGLE COMMAND FOR SOME REASON \n");
     struct thread_args *args = (struct thread_args *)ptr;
@@ -406,10 +590,13 @@ void *parseSingleCommand(void *ptr){
     strcpy(token,args->singleCommand);
 
     char *fileName = args->fileName;
+
     //Method gets a single char array containing one command as token, and the fileName it should be writing into
     char *mainCommand = strtok(token, " ");
     if(mainCommand == NULL)
         printf("Main Command is null\n");
+
+
     if(strcmp(mainCommand, "search") == 0){ ///SEARCH
         //The current code only checks for first 3 keywords. If there are, say 15; no error is shown.
         char *keyword = strtok(NULL, " ");
