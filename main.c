@@ -20,22 +20,26 @@ pthread_mutex_t mutexLock;
 char optionalFileName[50] = {'\0'}; //Initting it with empty so that i can check
 
 //This function trims whitespaces from right and left. i.e. "   java  " --> "java"
-char * trim_space(char *str) {
+char *trim_space(char *str)
+{
     char *end;
     /* skip leading whitespace */
-    while (isspace(*str)) {
+    while (isspace(*str))
+    {
         str = str + 1;
     }
     /* remove trailing whitespace */
     end = str + strlen(str) - 1;
-    while (end > str && isspace(*end)) {
+    while (end > str && isspace(*end))
+    {
         end = end - 1;
     }
     /* write null character */
-    *(end+1) = '\0';
+    *(end + 1) = '\0';
     return str;
 }
-int writingOperation(char *x, int y, int z, FILE *f){
+int writingOperation(char *x, int y, int z, FILE *f)
+{
 
     pthread_mutex_lock(&mutexLock);
     //printf("LOCKED BY MUTEX -TM-\n");
@@ -46,24 +50,22 @@ int writingOperation(char *x, int y, int z, FILE *f){
     return writtenLenght;
 }
 
-int splitCommands(const char *input, const char delim, char* Commands[]);
+int splitCommands(const char *input, const char delim, char *Commands[]);
 
-
-FILE* openFileForReadPlus(char *fileName)
+FILE *openFileForReadPlus(char *fileName)
 {
 
-    if(fileName[strlen(fileName)-1] == '\n')
-        fileName[strlen(fileName)-1] = '\0';
-    printf("-%s- is the crurrent output\n", optionalFileName);
-    printf("THE NAME OF THE FILE THE BEING OPENED THE IS : -%s-\n", fileName);
+    if (fileName[strlen(fileName) - 1] == '\n')
+        fileName[strlen(fileName) - 1] = '\0';
     FILE *fp = fopen(fileName, "r+");
-    if(fp == NULL)
+    if (fp == NULL)
     {
         printf("Unable to open file named : -%s-\n", fileName);
         perror("fopen");
         return NULL;
     }
-    else{
+    else
+    {
         rewind(fp);
         return fp;
     }
@@ -76,15 +78,17 @@ bool writeEntireFile(FILE *in, FILE *out)
     rewind(out);
     char buffer[BUFFER_SIZE];
     //Write the new file into Input File
-    while(fgets(buffer, BUFFER_SIZE, out))
-         writingOperation(buffer, 1, strlen(buffer), in);
+    while (fgets(buffer, BUFFER_SIZE, out))
+        writingOperation(buffer, 1, strlen(buffer), in);
     return true;
 }
 
-int lineCount(FILE *inFile){
+int lineCount(FILE *inFile)
+{
     int lineCount = 0;
     char buffer[9999];
-    while(fgets(buffer, BUFFER_SIZE, inFile)){
+    while (fgets(buffer, BUFFER_SIZE, inFile))
+    {
         lineCount++;
     }
     printf("File has: '%d' lines.\n", lineCount);
@@ -101,21 +105,22 @@ void search(const char *keyword, bool countFlag, FILE *inFile)
     char *pos;
     int index, count = 0;
 
-    if(inFile == NULL)
+    if (inFile == NULL)
     {
         printf("File is not open!\n");
         return;
-    }else if(keyword == NULL){
+    }
+    else if (keyword == NULL)
+    {
         printf("What am i searching for. The search word is NULL, sorry man something is wrong.\n");
         return;
     }
     else
     {
-            printf("\nSTARTING SEARCH FOR %s\n", keyword);
-        while((fgets(str, BUFFER_SIZE, inFile)) != NULL)
+        while ((fgets(str, BUFFER_SIZE, inFile)) != NULL)
         {
             index = 0;
-             while ((pos = strstr(str + index, keyword)) != NULL)
+            while ((pos = strstr(str + index, keyword)) != NULL)
             {
                 // Index of word in str is
                 // Memory address of pos - memory
@@ -127,11 +132,10 @@ void search(const char *keyword, bool countFlag, FILE *inFile)
             }
         }
 
-    if(countFlag)
-        printf("\nOcurrence of %s is : %d\n", keyword, count);
-    fclose(inFile);
-    printf("SEARCH METHOD IS COMPLETED\n");
-    return;
+        if (countFlag)
+            printf("\nOcurrence of %s is : %d\n", keyword, count);
+        fclose(inFile);
+        return;
     }
 }
 //TODO:FIX ALL fwrites with this.
@@ -143,28 +147,28 @@ void replace(char *keyword, char *sourceKeyword, bool countFlag, FILE *inFile, c
 
     FILE *Output = fopen(TEMP_FILE_NAME, "w+");
 
-    if(inFile == NULL)
+    if (inFile == NULL)
     {
         printf("File is not open!\n");
         return;
     }
     else
     {
-        while(NULL != fgets(buffer, BUFFER_SIZE, inFile))
+        while (NULL != fgets(buffer, BUFFER_SIZE, inFile))
         {
             // For each incidence of "is"
             char *Stop = NULL;    // Where to stop copying (at 'is')
             char *Start = buffer; // Start at the beginning of the line, and after each match
 
-            while(1)
+            while (1)
             {
                 // Find next match
                 Stop = strstr(Start, sourceKeyword);
 
-                if(Stop == NULL)
+                if (Stop == NULL)
                 {
                     // Print the remaining text in the line
-                     writingOperation(Start, 1, strlen(Start), Output);
+                    writingOperation(Start, 1, strlen(Start), Output);
 
                     break;
                 }
@@ -172,10 +176,10 @@ void replace(char *keyword, char *sourceKeyword, bool countFlag, FILE *inFile, c
                 printf("Match starts at: %s\n", Stop);
 
                 // We have found a match!  Copy everything from [Start, Stop)
-                 writingOperation(Start, 1, Stop - Start, Output);
+                writingOperation(Start, 1, Stop - Start, Output);
 
                 // Write our replacement text
-                 writingOperation(keyword, 1, strlen(keyword), Output);
+                writingOperation(keyword, 1, strlen(keyword), Output);
 
                 // Next time, we want to start searching after our 'match'
                 Start = Stop + strlen(sourceKeyword);
@@ -185,24 +189,27 @@ void replace(char *keyword, char *sourceKeyword, bool countFlag, FILE *inFile, c
         }
         // If desired, rename the Output file to the Input file
 
-        if(optionalOutputFile != NULL && optionalOutputFile[0] != '\0'){
-                FILE *f = fopen(optionalOutputFile, "r+");
-                if(f == NULL){
-                    writeEntireFile(inFile, Output);
-                }else{
-                    writeEntireFile(f,Output);
-                    fclose(f);
-                }
+        if (optionalOutputFile != NULL && optionalOutputFile[0] != '\0')
+        {
+            FILE *f = fopen(optionalOutputFile, "r+");
+            if (f == NULL)
+            {
+                writeEntireFile(inFile, Output);
+            }
+            else
+            {
+                writeEntireFile(f, Output);
+                fclose(f);
+            }
         }
         else
-            writeEntireFile(inFile,Output);
+            writeEntireFile(inFile, Output);
     }
     // Close our files
     fclose(inFile);
-        //Remove the temp file
+    //Remove the temp file
     remove(TEMP_FILE_NAME);
     fclose(Output);
-
 }
 
 int insert(char keywordToInsert[], bool countFlag, bool afterFlag, char *keywordToInsertAfter, FILE *inFile, char *optionalOutputFile)
@@ -210,45 +217,46 @@ int insert(char keywordToInsert[], bool countFlag, bool afterFlag, char *keyword
     pthread_mutex_lock(&mutexLock);
     char insertKeyword[BUFFER_SIZE];
 
-    printf("INSERT METHOD CALLED\n");
+    printf("Inserting -%s- next to -%s-\n", keywordToInsert, keywordToInsertAfter);
 
     char buffer[BUFFER_SIZE];
     FILE *Output = fopen(TEMP_FILE_NAME, "w+");
 
-    if(keywordToInsert == NULL || keywordToInsertAfter == NULL || inFile == NULL || Output == NULL){
-          printf("insert : Some value is not correct. Returning to main loop\n");
-          return -78;
+    if (keywordToInsert == NULL || keywordToInsertAfter == NULL || inFile == NULL || Output == NULL)
+    {
+        printf("insert : Some value is not correct. Returning to main loop\n");
+        return -78;
     }
-    strcat(insertKeyword,keywordToInsert);
+    strcat(insertKeyword, keywordToInsert);
 
-    while(fgets(buffer, BUFFER_SIZE, inFile)){
+    while (fgets(buffer, BUFFER_SIZE, inFile))
+    {
         char *Stop = NULL;
         char *Start = buffer; // Start at the beginning of the line, and after each match
 
-        while(1)
+        while (1)
         {
             // Find next match and move the pointer to the end of our target keyword
-            printf("%s\n",keywordToInsertAfter);
             Stop = strstr(Start, keywordToInsertAfter);
-
-            if(Stop == NULL)
+            if (Stop == NULL)
             {
                 // Print the remaining text in the line
-                printf("JUST BEFORE WRITE\n");
                 writingOperation(Start, 1, strlen(Start), Output);
-                printf("JUST WRITE\n");
                 break;
             }
-            printf("Match starts at: %s\n", Stop);
+            
 
             // We have found a match!  Copy everything from [Start, Stop)
-            if(afterFlag){
-                 writingOperation(Start, 1, Stop - Start + strlen(keywordToInsertAfter), Output);
-                 writingOperation(keywordToInsert, 1, strlen(keywordToInsert), Output);
-            }else{
-                 writingOperation(Start, 1, Stop - Start, Output);
-                 writingOperation(keywordToInsert, 1, strlen(keywordToInsert), Output);
-                 writingOperation(keywordToInsertAfter, 1, strlen(keywordToInsertAfter), Output);
+            if (afterFlag)
+            {
+                writingOperation(Start, 1, Stop - Start + strlen(keywordToInsertAfter), Output);
+                writingOperation(keywordToInsert, 1, strlen(keywordToInsert), Output);
+            }
+            else
+            {
+                writingOperation(Start, 1, Stop - Start, Output);
+                writingOperation(keywordToInsert, 1, strlen(keywordToInsert), Output);
+                writingOperation(keywordToInsertAfter, 1, strlen(keywordToInsertAfter), Output);
             }
             // Next time, we want to start searching after our 'match'
 
@@ -256,35 +264,35 @@ int insert(char keywordToInsert[], bool countFlag, bool afterFlag, char *keyword
         }
     }
 
-
-    if(optionalOutputFile != NULL){
-            FILE *f = fopen(optionalOutputFile, "w+");
-            writeEntireFile(f,Output);
-            fclose(f);
+    if (optionalOutputFile != NULL)
+    {
+        FILE *f = fopen(optionalOutputFile, "r+");
+        writeEntireFile(f, Output);
+        fclose(f);
     }
     else
-        writeEntireFile(inFile,Output);
+        writeEntireFile(inFile, Output);
 
     fclose(inFile);
-    remove(TEMP_FILE_NAME);//DONT REMOVE IF ANOTHER THREAD IS USING THIS
+    remove(TEMP_FILE_NAME); //DONT REMOVE IF ANOTHER THREAD IS USING THIS
     fclose(Output);
     pthread_mutex_unlock(&mutexLock);
     return 1;
 }
 
-int showHeadLines(FILE *inFile, int lineAmountToShow){
+int showHeadLines(FILE *inFile, int lineAmountToShow)
+{
     int atLine = 1;
     char buffer[9999];
 
-    if(inFile == NULL || lineAmountToShow == NULL || lineAmountToShow < 0){
+    if (inFile == NULL || lineAmountToShow == NULL || lineAmountToShow < 0)
+    {
         printf("Some value is not correct. Returning to main loop\n");
         return -76;
     }
 
-    printf("\n---SHOWING FIRST %d LINES\n",lineAmountToShow);
-
-
-    while(fgets(buffer, BUFFER_SIZE, inFile) && atLine <= lineAmountToShow){
+    while (fgets(buffer, BUFFER_SIZE, inFile) && atLine <= lineAmountToShow)
+    {
         printf("Line %d: %s\n", atLine, buffer);
         atLine++;
     }
@@ -292,42 +300,49 @@ int showHeadLines(FILE *inFile, int lineAmountToShow){
     return -213;
 }
 
-int showMidLines(FILE *inFile, int startLine, int endLine){
+int showMidLines(FILE *inFile, int startLine, int endLine)
+{
 
     int linesShown = 0;
     int atLine = 0;
     char buffer[9999];
 
-    if(inFile == NULL || startLine == NULL || endLine == NULL || startLine < 0 || endLine < 0){
+    if (inFile == NULL || startLine == NULL || endLine == NULL || startLine < 0 || endLine < 0)
+    {
         printf("midLines : Some value is not correct. Returning to main loop\n");
         return -74;
     }
 
     //Extreme case handling. If starting line is smaller than end. Swap the values.
-    if(endLine < startLine){
+    if (endLine < startLine)
+    {
         int temp = endLine;
         endLine = startLine;
         startLine = temp;
     }
 
     int lineCountOfFile = lineCount(inFile);
-    if(lineCountOfFile < endLine - startLine +1){
+    if (lineCountOfFile < endLine - startLine + 1)
+    {
         printf("WARNING : given input is larger than the line count. Showing entire file\n");
         endLine = lineCountOfFile;
         startLine = 0;
     }
 
     rewind(inFile);
-    printf("\nSHOWIN LINES BETWEEN %d-%d\n", startLine, endLine);
-    while(fgets(buffer, BUFFER_SIZE, inFile)){
+    
+    while (fgets(buffer, BUFFER_SIZE, inFile))
+    {
         atLine++;
-        if(linesShown > endLine - startLine + 1) //Enough lines have been shown. Break out of the loop
+        if (linesShown > endLine - startLine + 1) //Enough lines have been shown. Break out of the loop
             return 659;
-        else if(atLine >= startLine && atLine <= endLine){
+        else if (atLine >= startLine && atLine <= endLine)
+        {
             printf("Line %d: %s\n", atLine, buffer);
             linesShown++;
-
-        }else{
+        }
+        else
+        {
             //Empty for now, maybe has a use, I dunno.
         }
     }
@@ -335,9 +350,11 @@ int showMidLines(FILE *inFile, int startLine, int endLine){
     return 211;
 }
 
-int showTailLines(FILE *inFile, int lineAmountToShow){
+int showTailLines(FILE *inFile, int lineAmountToShow)
+{
 
-    if(inFile == NULL || lineAmountToShow == NULL ||lineAmountToShow < 0){
+    if (inFile == NULL || lineAmountToShow == NULL || lineAmountToShow < 0)
+    {
         printf("showTailLines : Some value is not correct. Returning to main loop\n");
         return -72;
     }
@@ -348,79 +365,90 @@ int showTailLines(FILE *inFile, int lineAmountToShow){
     int lineCountOfFile = lineCount(inFile);
     rewind(inFile);
     printf("\nSHOWING LAST %d LINES\n", lineAmountToShow);
-    while(fgets(buffer, BUFFER_SIZE, inFile)){
+    while (fgets(buffer, BUFFER_SIZE, inFile))
+    {
         atLine++;
-        if(linesShown >= lineAmountToShow){
+        if (linesShown >= lineAmountToShow)
+        {
             //Code should never reach here.
             printf("ERROR : showTailLines method reached beyond the file but tried showing lines. Something is wrong.");
             return -156;
         }
-        else if(atLine >= lineCountOfFile - lineAmountToShow + 1){
+        else if (atLine >= lineCountOfFile - lineAmountToShow + 1)
+        {
             printf("Line %d: %s\n", atLine, buffer);
             linesShown++;
-        }else{
+        }
+        else
+        {
             //Empty for now, maybe has a use, I dunno.
         }
     }
 }
 
-int split(int charCount, FILE *inFile, char *optionalOutputFile){
+int split(int charCount, FILE *inFile, char *optionalOutputFile)
+{
 
-
-
-    FILE *out = fopen("temp.txt", "w+");
+    FILE *out = fopen(TEMP_FILE_NAME, "w+");
     char buffer[BUFFER_SIZE];
     char *lineEndingChar = "\n";
 
-    if(out == NULL || charCount == NULL || charCount < 1 || inFile == NULL){
+    if (out == NULL || charCount == NULL || charCount < 1 || inFile == NULL)
+    {
         printf("Split method recieved something null, returning to main loop\n");
         return -89;
     }
 
-    charCount++;//So that termination char is added too
+    charCount++; //So that termination char is added too
 
-    while(fgets(buffer, charCount, inFile)){
-        printf("writeee\n");
-        if(buffer[strlen(buffer)-1] != '\n')//This is necessary. If the last char is a new line, it adds a second unnecessary line to the file without this check
+    while (fgets(buffer, charCount, inFile))
+    {
+        if (buffer[strlen(buffer) - 1] != '\n') //This is necessary. If the last char is a new line, it adds a second unnecessary line to the file without this check
             strcat(buffer, lineEndingChar);
-         writingOperation(buffer, 1, charCount, out);
+        writingOperation(buffer, 1, charCount, out);
     }
 
-     if(optionalOutputFile != NULL){
-            FILE *f = fopen(optionalOutputFile, "w+");
-            writeEntireFile(f,out);
+    if (optionalOutputFile != NULL)
+    {
+        FILE *f = fopen(optionalOutputFile, "r+");
+        writeEntireFile(f, out);
     }
     else
-        writeEntireFile(inFile,out);
-
+        writeEntireFile(inFile, out);
 
     return 123;
 }
 
-
 bool checkInputLengthValidity(char line[])
 {
-        for(int i = 0 ; i < (MAX_LINE_LENGTH+1); i++){
-            if(line[i] == EOF || line[i] == '\0') return true;
-        }
-        return false;
+    for (int i = 0; i < (MAX_LINE_LENGTH + 1); i++)
+    {
+        if (line[i] == EOF || line[i] == '\0')
+            return true;
+    }
+    return false;
 }
 
-char** getKeywordFromQuotationedLine(char line[], char *words[]){
+char **getKeywordFromQuotationedLine(char line[], char *words[])
+{
     int wordCount = 0;
     int Start = -1;
     int Stop = -1;
     char *ptr = &line;
-    for(int i = 0; i< strlen(line); i++){
-        if(line[i] == '\"'){
-            ptr = &line[i+1];
+    for (int i = 0; i < strlen(line); i++)
+    {
+        if (line[i] == '\"')
+        {
+            ptr = &line[i + 1];
             Start = i;
             i++;
-            for(; i<strlen(line); i++){
-                if(line[i] == '\"'){
+            for (; i < strlen(line); i++)
+            {
+                if (line[i] == '\"')
+                {
                     Stop = i;
-                    printf("Copied %s\n", words[wordCount-1]);
-                    words[wordCount] = malloc(sizeof(char) * (Stop-Start));
+                    
+                    words[wordCount] = malloc(sizeof(char) * (Stop - Start));
                     strncpy(words[wordCount], ptr, Stop - Start - 1);
                     wordCount++;
                     //printf("Copied %s\n", words[wordCount-1]);
@@ -429,20 +457,22 @@ char** getKeywordFromQuotationedLine(char line[], char *words[]){
             }
         }
     }
-  return words;
+    return words;
 }
 
-void *multiWordParseSingleCommand(void *ptr){
+void *multiWordParseSingleCommand(void *ptr)
+{
 
     struct thread_args *args = (struct thread_args *)ptr;
 
-    if(args == NULL && args->fileName && NULL && args->singleCommand == NULL && strlen(args->singleCommand) < 4){
+    if (args == NULL && args->fileName && NULL && args->singleCommand == NULL && strlen(args->singleCommand) < 4)
+    {
         printf("Wrong or Missing Command skipping this one\n");
         return;
     }
 
     char token[512];
-    strcpy(token,args->singleCommand);
+    strcpy(token, args->singleCommand);
 
     char *fileName = args->fileName;
 
@@ -451,147 +481,171 @@ void *multiWordParseSingleCommand(void *ptr){
     char **keywordsptr = getKeywordFromQuotationedLine(args->singleCommand, keywords);
     //NEW PART
 
-    printf(">>>%s\n", args->singleCommand);
+    
 
     //Method gets a single char array containing one command as token, and the fileName it should be writing into
     char *mainCommand = strtok(token, " ");
-    if(mainCommand == NULL){
+    if (mainCommand == NULL)
+    {
         printf("Main Command is null. Dont know what to do. Ignoring this command subset.\n");
         return;
-
     }
 
-
-    if(strcmp(mainCommand, "search") == 0){ ///SEARCH
+    if (strcmp(mainCommand, "search") == 0)
+    { ///SEARCH
         //The current code only checks for first 3 keywords. If there are, say 15; no error is shown.
         char *keyword = strtok(NULL, " ");
         bool countFlag = false;
 
-        if(strstr(args->singleCommand, "-c") != NULL){
+        if (strstr(args->singleCommand, "-c") != NULL)
+        {
             countFlag = true;
-            printf("Search -c flag is now true \n");
         }
 
-        if(keyword == NULL)
+        if (keyword == NULL)
             printf("Error keyword is null in search command\n, its token is %s\n", token);
 
         char newK[512] = {'\0'};
-        printf("Search startirng\n");
-        if(strlen(keywordsptr) > 0 && keywordsptr[0] == NULL){
+        
+        if (strlen(keywordsptr) > 0 && keywordsptr[0] == NULL)
+        {
             printf("NULL WORD");
-        }else{
-        strcpy(newK, keywordsptr[0]);
-        printf("Search startirng\n");
-        search(newK, countFlag, openFileForReadPlus(fileName));
-        printf("REACHES HERE AT LEAST \n");
         }
-
-
-    }else if(strcmp(mainCommand, "replace")==0){ ///REPLACE
+        else
+        {
+            strcpy(newK, keywordsptr[0]);
+            
+            search(newK, countFlag, openFileForReadPlus(fileName));
+            
+        }
+    }
+    else if (strcmp(mainCommand, "replace") == 0)
+    { ///REPLACE
         printf("REPLACE COMMAND RECIEVED \n");
         char *targetKeyword = strtok(NULL, " ");
         char *sourceKeyword = strtok(NULL, " ");
         bool countFlag = false;
 
-        if(strstr(args->singleCommand, "-c") != NULL){
+        if (strstr(args->singleCommand, "-c") != NULL)
+        {
             countFlag = true;
-            printf("Search -c flag is now true \n");
+            
         }
 
-         if(targetKeyword == NULL || sourceKeyword == NULL)
+        if (targetKeyword == NULL || sourceKeyword == NULL)
             perror("Error. A necessary command is missing in replace command");
         char *name = NULL;
 
-        if(strstr(args->singleCommand, ">") != NULL){
-            printf("Alternate output file recognized. Results will be written.\n");
+        if (strstr(args->singleCommand, ">") != NULL)
+        {
+            printf("Alternate output file recognized. Results will be written to that.\n");
 
             name = strstr(args->singleCommand, ">");
-            name = name +2;
+            name = name + 2;
             char *h = name;
             char temp[50] = {'\0'};
             char *h2 = strstr(name, " ");
-            strncpy(temp,name, h2-h);
-            printf("WRITING NOW\n");
+            strncpy(temp, name, h2 - h);
+            
             strcpy(optionalFileName, temp);
-            printf("WRITING END : -%s-\n", optionalFileName);
+            
         }
 
-        if(strlen(keywordsptr) != 2) {
+        if (strlen(keywordsptr) != 2)
+        {
             printf("Wrong number of keywords found exiting command\n");
-        }else{
+        }
+        else
+        {
             char newK[512];
             strcpy(newK, keywordsptr[0]);
             char newK2[512];
             strcpy(newK2, keywordsptr[1]);
             replace(newK, newK2, countFlag, openFileForReadPlus(fileName), name);
         }
+    }
+    else if (strcmp(mainCommand, "insert") == 0)
+    {
 
-
-    }else if(strcmp(mainCommand, "insert") == 0){
-
-        char *insertedKeyword  = strtok(NULL, " ");
+        char *insertedKeyword = strtok(NULL, " ");
         bool countFlag = false;
         bool afterFlag = true;
         char *keywordToInsertAfter = strtok(NULL, " ");
 
-        if(strstr(args->singleCommand, "-c") != NULL){
+        if (strstr(args->singleCommand, "-c") != NULL)
+        {
             countFlag = true;
-            printf("Flag is now true\n");
+            
         }
 
-        if(strstr(args->singleCommand, "-a") != NULL) afterFlag = true;
+        if (strstr(args->singleCommand, "-a") != NULL)
+            afterFlag = true;
 
-        else if(strstr(args->singleCommand, "-b") != NULL){
-            printf("OH WOULD YOU LOOK AT THAT SOMEONE IS TRYING TO INSERT BEFORE THE WORD\n");
+        else if (strstr(args->singleCommand, "-b") != NULL)
+        {
+            
             afterFlag = false;
         }
-        if(keywordToInsertAfter == NULL || insertedKeyword == NULL)
+        if (keywordToInsertAfter == NULL || insertedKeyword == NULL)
             perror("Error. A necessary command is missing in replace command");
         char *name = NULL;
-        if(strstr(args->singleCommand, ">") != NULL){
+        if (strstr(args->singleCommand, ">") != NULL)
+        {
             printf("Alternate output file recognized. Results will be written.\n");
             name = (strstr(args->singleCommand, ">"));
-            name = name +2;
+            name = name + 2;
             char *h = name;
             char temp[50] = {'\0'};
             char *h2 = strstr(name, " ");
-            strncpy(temp,name, h2-h);
+            strncpy(temp, name, h2 - h);
         }
-        if(strlen(keywordsptr) != 2) {
+        if (strlen(keywordsptr) != 2)
+        {
             printf("Wrong number of keywords found exiting command\n");
-        }else{
+        }
+        else
+        {
             char newK[512];
             strcpy(newK, keywordsptr[0]);
             char newK2[512];
             strcpy(newK2, keywordsptr[1]);
-            printf("-%s-%s-\n", newK, newK2);
-
             printf("THE FILE BEING TREATED AS inFile : %s\n", args->fileName);
-            insert(newK,countFlag, afterFlag, newK2, openFileForReadPlus(args->fileName),name);
+            insert(newK, countFlag, afterFlag, newK2, openFileForReadPlus(args->fileName), name);
         }
-
-    }else if(strcmp(mainCommand, "lineCount") == 0){
+    }
+    else if (strcmp(mainCommand, "lineCount") == 0)
+    {
         lineCount(openFileForReadPlus(args->fileName));
-
-    }else if(strcmp(mainCommand, "split") == 0){
+    }
+    else if (strcmp(mainCommand, "split") == 0)
+    {
         char *p = strtok(NULL, " ");
         char temp[50];
         strcpy(temp, p);
         char *tempP = trim_space(temp);
         int charCount = atoi(tempP);
 
-       char *name = NULL;
+        char *name = NULL;
 
-        if(strstr(args->singleCommand, ">") != NULL){
+        if (strstr(args->singleCommand, ">") != NULL)
+        {
             printf("Alternate output file recognized. Results will be written.\n");
 
-            name = (strstr(token, ">"));
-            name = name +2;
-            strncpy(optionalFileName,name, strstr(name, " ") - optionalFileName);
+            name = strstr(args->singleCommand, ">");
+            name = name + 2;
+            char *h = name;
+            char temp[50] = {'\0'};
+            char *h2 = strstr(name, " ");
+            strncpy(temp, name, h2 - h);
+            
+            strcpy(optionalFileName, temp);
+            
         }
-        split(charCount, openFileForReadPlus(args->fileName), name);
 
-    }else if(strcmp(mainCommand, "head") == 0){
+        split(charCount, openFileForReadPlus(args->fileName), name);
+    }
+    else if (strcmp(mainCommand, "head") == 0)
+    {
 
         char *p = strtok(NULL, " ");
         char temp[50];
@@ -600,8 +654,9 @@ void *multiWordParseSingleCommand(void *ptr){
         int lineCount = atoi(tempP);
 
         showHeadLines(openFileForReadPlus(args->fileName), lineCount);
-
-    }else if(strcmp(mainCommand, "tail") == 0){
+    }
+    else if (strcmp(mainCommand, "tail") == 0)
+    {
 
         char *p = strtok(NULL, " ");
         char temp[50];
@@ -610,8 +665,9 @@ void *multiWordParseSingleCommand(void *ptr){
         int lineCount = atoi(tempP);
 
         showTailLines(openFileForReadPlus(args->fileName), lineCount);
-
-    }else if(strcmp(mainCommand, "mid") == 0){
+    }
+    else if (strcmp(mainCommand, "mid") == 0)
+    {
 
         char *p = strtok(NULL, " ");
         char temp[50];
@@ -620,128 +676,165 @@ void *multiWordParseSingleCommand(void *ptr){
         int startLine = atoi(tempP);
 
         p = strtok(NULL, " ");
-        strcpy(temp,p);
+        strcpy(temp, p);
         tempP = trim_space(temp);
         int endLine = atoi(tempP);
 
         showMidLines(openFileForReadPlus(args->fileName), startLine, endLine);
-
-    }else if(strcmp(mainCommand, "exit") == 0){
+    }
+    else if (strcmp(mainCommand, "exit") == 0)
+    {
         printf("Recieved exit command. Execution will be stopped after this iteration.\n");
-    }else{
+    }
+    else
+    {
         printf("Unknown main command entered. Please try again man");
         return NULL;
     }
     //pthread_exit(NULL);
 }
 
-void *parseSingleCommand(void *ptr){
+void *parseSingleCommand(void *ptr)
+{
     struct thread_args *args = (struct thread_args *)ptr;
 
     char token[512];
-    strcpy(token,args->singleCommand);
+    strcpy(token, args->singleCommand);
 
     char *fileName = args->fileName;
 
     //Method gets a single char array containing one command as token, and the fileName it should be writing into
     char *mainCommand = strtok(token, " ");
-    if(mainCommand == NULL)
+    if (mainCommand == NULL)
         printf("Main Command is null\n");
 
-
-    if(strcmp(mainCommand, "search") == 0){ ///SEARCH
+    if (strcmp(mainCommand, "search") == 0)
+    { ///SEARCH
         //The current code only checks for first 3 keywords. If there are, say 15; no error is shown.
         char *keyword = strtok(NULL, " ");
         bool countFlag = false;
 
-        if(strstr(args->singleCommand, "-c") != NULL){
+        if (strstr(args->singleCommand, "-c") != NULL)
+        {
             countFlag = true;
-            printf("Search -c flag is now true \n");
+            
         }
 
-        if(keyword == NULL)
+        if (keyword == NULL)
             printf("Error keyword is null in search command\n, its token is %s\n", token);
 
         search(keyword, countFlag, openFileForReadPlus(fileName));
-        printf("REACHES HERE AT LEAST \n");
-
-
-    }else if(strcmp(mainCommand, "replace")==0){ ///REPLACE
-        printf("REPLACE COMMAND RECIEVED \n");
+        
+    }
+    else if (strcmp(mainCommand, "replace") == 0)
+    { ///REPLACE
+        
         char *targetKeyword = strtok(NULL, " ");
         char *sourceKeyword = strtok(NULL, " ");
         bool countFlag = false;
 
-        if(strstr(args->singleCommand, "-c") != NULL){
+        if (strstr(args->singleCommand, "-c") != NULL)
+        {
             countFlag = true;
-            printf("Search -c flag is now true \n");
+            
         }
 
-         if(targetKeyword == NULL || sourceKeyword == NULL)
+        if (targetKeyword == NULL || sourceKeyword == NULL)
             perror("Error. A necessary command is missing in replace command");
         char *name = NULL;
 
-        if(strstr(args->singleCommand, ">") != NULL){
+        if (strstr(args->singleCommand, ">") != NULL)
+        {
             printf("Alternate output file recognized. Results will be written.\n");
-            name = (strstr(token, ">"));
-            name = name +2;
-            strncpy(optionalFileName,name, strstr(name, " ") - optionalFileName);
+
+            name = strstr(args->singleCommand, ">");
+            name = name + 2;
+            char *h = name;
+            char temp[50] = {'\0'};
+            char *h2 = strstr(name, " ");
+            strncpy(temp, name, h2 - h);
+            printf("WRITING NOW\n");
+            strcpy(optionalFileName, temp);
+            printf("WRITING END : -%s-\n", optionalFileName);
         }
 
         replace(targetKeyword, sourceKeyword, countFlag, openFileForReadPlus(fileName), name);
+    }
+    else if (strcmp(mainCommand, "insert") == 0)
+    {
 
-    }else if(strcmp(mainCommand, "insert") == 0){
-
-        char *insertedKeyword  = strtok(NULL, " ");
+        char *insertedKeyword = strtok(NULL, " ");
         bool countFlag = false;
         bool afterFlag = true;
         char *keywordToInsertAfter = strtok(NULL, " ");
 
-        if(strstr(args->singleCommand, "-c") != NULL){
+        if (strstr(args->singleCommand, "-c") != NULL)
+        {
             countFlag = true;
             printf("Flag is now true\n");
         }
 
-        if(strstr(args->singleCommand, "-a") != NULL) afterFlag = true;
-        else if(strstr(args->singleCommand, "-b") != NULL){
+        if (strstr(args->singleCommand, "-a") != NULL)
+            afterFlag = true;
+        else if (strstr(args->singleCommand, "-b") != NULL)
+        {
             printf("OH WOULD YOU LOOK AT THAT SOMEONE IS TRYING TO INSERT BEFORE THE WORD\n");
             afterFlag = false;
         }
 
-        if(keywordToInsertAfter == NULL || insertedKeyword == NULL)
+        if (keywordToInsertAfter == NULL || insertedKeyword == NULL)
             perror("Error. A necessary command is missing in replace command");
         char *name = NULL;
-        if(strstr(args->singleCommand, ">") != NULL){
+        if (strstr(args->singleCommand, ">") != NULL)
+        {
             printf("Alternate output file recognized. Results will be written.\n");
-            name = (strstr(token, ">"));
-            name = name +2;
-            strncpy(optionalFileName,name, strstr(name, " ") - optionalFileName);
+
+            name = strstr(args->singleCommand, ">");
+            name = name + 2;
+            char *h = name;
+            char temp[50] = {'\0'};
+            char *h2 = strstr(name, " ");
+            strncpy(temp, name, h2 - h);
+            printf("WRITING NOW\n");
+            strcpy(optionalFileName, temp);
+            printf("WRITING END : -%s-\n", optionalFileName);
         }
 
-        insert(insertedKeyword,countFlag, afterFlag, keywordToInsertAfter, openFileForReadPlus(args->fileName),name);
-
-    }else if(strcmp(mainCommand, "lineCount") == 0){
+        insert(insertedKeyword, countFlag, afterFlag, keywordToInsertAfter, openFileForReadPlus(args->fileName), name);
+    }
+    else if (strcmp(mainCommand, "lineCount") == 0)
+    {
         lineCount(openFileForReadPlus(args->fileName));
-
-    }else if(strcmp(mainCommand, "split") == 0){
+    }
+    else if (strcmp(mainCommand, "split") == 0)
+    {
         char *p = strtok(NULL, " ");
         char temp[50];
         strcpy(temp, p);
         char *tempP = trim_space(temp);
         int charCount = atoi(tempP);
 
-       char *name = NULL;
+        char *name = NULL;
 
-        if(strstr(args->singleCommand, ">") != NULL){
+        if (strstr(args->singleCommand, ">") != NULL)
+        {
             printf("Alternate output file recognized. Results will be written.\n");
-            name = (strstr(token, ">"));
-            name = name +2;
-            strncpy(optionalFileName,name, strstr(name, " ") - optionalFileName);
+
+            name = strstr(args->singleCommand, ">");
+            name = name + 2;
+            char *h = name;
+            char temp[50] = {'\0'};
+            char *h2 = strstr(name, " ");
+            strncpy(temp, name, h2 - h);
+            printf("WRITING NOW\n");
+            strcpy(optionalFileName, temp);
+            printf("WRITING END : -%s-\n", optionalFileName);
         }
 
         split(charCount, openFileForReadPlus(args->fileName), name);
-
-    }else if(strcmp(mainCommand, "head") == 0){
+    }
+    else if (strcmp(mainCommand, "head") == 0)
+    {
 
         char *p = strtok(NULL, " ");
         char temp[50];
@@ -750,8 +843,9 @@ void *parseSingleCommand(void *ptr){
         int lineCount = atoi(tempP);
 
         showHeadLines(openFileForReadPlus(args->fileName), lineCount);
-
-    }else if(strcmp(mainCommand, "tail") == 0){
+    }
+    else if (strcmp(mainCommand, "tail") == 0)
+    {
 
         char *p = strtok(NULL, " ");
         char temp[50];
@@ -760,43 +854,47 @@ void *parseSingleCommand(void *ptr){
         int lineCount = atoi(tempP);
 
         showTailLines(openFileForReadPlus(args->fileName), lineCount);
-
-    }else if(strcmp(mainCommand, "mid") == 0){
+    }
+    else if (strcmp(mainCommand, "mid") == 0)
+    {
 
         char *p = strtok(NULL, " ");
         char temp[50];
         strcpy(temp, p);
         char *tempP = trim_space(temp);
         int startLine = atoi(tempP);
-
         p = strtok(NULL, " ");
-        strcpy(temp,p);
+        strcpy(temp, p);
         tempP = trim_space(temp);
         int endLine = atoi(tempP);
 
         showMidLines(openFileForReadPlus(args->fileName), startLine, endLine);
-
-    }else{
+    }
+    else
+    {
         printf("Unknown main command entered. Please try again man");
         return NULL;
     }
     //pthread_exit(NULL);
 }
 
-char* getFileNameFromInputLine(char *l){
- char line[512];
+char *getFileNameFromInputLine(char *l)
+{
+    char line[512];
     strcpy(line, l);
     char fileName[512];
     char *p = strrchr(line, ' ');
 
-    printf("<<<-%s->>>", l);
-    if(p == NULL && strlen(l) != 0){
+    if (p == NULL && strlen(l) != 0)
+    {
         return l; //If there is no space but there are chars, then there is only one word
-    }else if (p && *(p + 1)){
-        printf("c is %s\n", p+1);
-        return p+1;
     }
-    else{
+    else if (p && *(p + 1))
+    {
+        return p + 1;
+    }
+    else
+    {
         printf("Unknown error. File name is not acquired\n");
         return NULL;
     }
@@ -820,33 +918,43 @@ int inputLoop(void)
         if (fgets(line, 515, stdin))
         {
             linePtr = line;
-            linePtr[strlen(linePtr)-1] = '\0';
+            linePtr[strlen(linePtr) - 1] = '\0';
             char *tempFileName = getFileNameFromInputLine(linePtr);
-            if(tempFileName != NULL)
-            strcpy(fileName, tempFileName);
-            if(strlen(linePtr) > MAX_LINE_LENGTH){
+            if (tempFileName != NULL)
+                strcpy(fileName, tempFileName);
+            if (strlen(linePtr) > MAX_LINE_LENGTH)
+            {
                 perror("Error. This line is too long. Max length is 512");
                 continue;
-            }else{
+            }
+            else
+            {
                 int sequentialCount = splitCommands(linePtr, ':', commandsSequential);
-               // printf("SEQUENTIAL COUNT IS : %d\n" , sequentialCount);
-                if(sequentialCount > 0){ //Then there is atleast one command
-                    for(int i = 0; i < sequentialCount; i++){
-                        if(commandsSequential[i] == NULL){
+                // printf("SEQUENTIAL COUNT IS : %d\n" , sequentialCount);
+                if (sequentialCount > 0)
+                { //Then there is atleast one command
+                    for (int i = 0; i < sequentialCount; i++)
+                    {
+                        if (commandsSequential[i] == NULL)
+                        {
                             perror("Error, a command string is NULL when reading sequential commands.");
                             continue;
-                        }else{
+                        }
+                        else
+                        {
                             int commandsThreadedLen = splitCommands(commandsSequential[i], ';', commandsThreaded);
 
                             pthread_t threads[commandsThreadedLen];
-                            printf("threaded COUNT IS : %d\n" , commandsThreadedLen);
-                            for(int j = 0; j<commandsThreadedLen; j++){
+                            printf("threaded COUNT IS : %d\n", commandsThreadedLen);
+                            for (int j = 0; j < commandsThreadedLen; j++)
+                            {
                                 printf("\n>-%s-\n", commandsThreaded[j]);
                             }
                             int threadsLen = 0;
 
-                            for(int j = 0; j<commandsThreadedLen; j++){
-                                if(commandsThreaded[j] != NULL && strstr(commandsThreaded[j], "exit") != NULL)
+                            for (int j = 0; j < commandsThreadedLen; j++)
+                            {
+                                if (commandsThreaded[j] != NULL && strstr(commandsThreaded[j], "exit") != NULL)
                                     whileFlag = false;
                                 struct thread_args args;
                                 args.fileName = fileName;
@@ -855,17 +963,21 @@ int inputLoop(void)
                                 int rc = -1;
                                 rc = pthread_create(&threads[threadsLen++], NULL, multiWordParseSingleCommand, (void *)&args);
                                 //parseSingleCommand((void *) &args);
-                                if(rc != 0){
+                                if (rc != 0)
+                                {
                                     perror("Error when opening thread.");
                                 }
-                                for(int j = 0; j< threadsLen; j++){
-                                pthread_join(threads[i], NULL);
-                                printf("I wait is end for thread\n");
-                            }
+                                for (int j = 0; j < threadsLen; j++)
+                                {
+                                    pthread_join(threads[i], NULL);
+                                    printf("I wait is end for thread\n");
+                                }
                             }
                         }
                     }
-                }else{
+                }
+                else
+                {
                     //gets(line);
                     //continue;
                 }
@@ -882,8 +994,8 @@ int inputLoop(void)
     return 0;
 }
 
-
-int batchedInputLoop(FILE *f){
+int batchedInputLoop(FILE *f)
+{
     printf("BATCH LOOP STARTS\n");
     char line[MAX_LINE_LENGTH];
     bool whileFlag = true;
@@ -892,76 +1004,96 @@ int batchedInputLoop(FILE *f){
     char *linePtr;
     char fileName[512] = {'\0'};
 
-    if(f == NULL){
+    if (f == NULL)
+    {
         perror("File NULL : ");
-         printf("FILE IS NULL, switching to input mode\n");
-         return inputLoop();
+        printf("FILE IS NULL, switching to input mode\n");
+        return inputLoop();
     }
     do
     {
         printf("\n");
         if (fgets(line, 515, f))
         {
-            if(feof(f)){
+            if (feof(f))
+            {
                 printf("END of FILE\n");
                 exit(78);
             }
-            if(line == NULL) exit(-99);
+            if (line == NULL)
+                exit(-99);
             optionalFileName[0] = '\0';
             linePtr = line;
-            linePtr[strlen(linePtr)-1] = '\0';
+            linePtr[strlen(linePtr) - 1] = '\0';
             //printf("Line is %s\n", linePtr);
             char *tempFileName = getFileNameFromInputLine(linePtr);
             printf("-%s-\n", tempFileName);
-            if(tempFileName != NULL)
+            if (tempFileName != NULL)
                 strcpy(fileName, tempFileName);
-            if(strlen(linePtr) > MAX_LINE_LENGTH){
+            if (strlen(linePtr) > MAX_LINE_LENGTH)
+            {
                 perror("Error. This line is too long. Max length is 512");
                 continue;
-            }else{
+            }
+            else
+            {
                 int sequentialCount = splitCommands(linePtr, ':', commandsSequential);
-               // printf("SEQUENTIAL COUNT IS : %d\n" , sequentialCount);
-                if(sequentialCount > 0){ //Then there is atleast one command
-                    for(int i = 0; i < sequentialCount; i++){
-                        if(commandsSequential[i] == NULL){
+                // printf("SEQUENTIAL COUNT IS : %d\n" , sequentialCount);
+                if (sequentialCount > 0)
+                { //Then there is atleast one command
+                    for (int i = 0; i < sequentialCount; i++)
+                    {
+                        if (commandsSequential[i] == NULL)
+                        {
                             perror("Error, a command string is NULL when reading sequential commands.");
                             continue;
-                        }else{
+                        }
+                        else
+                        {
+                            if (optionalFileName != NULL && strlen(optionalFileName) > 0 && strcmp(optionalFileName, "\0") != 0)
+                            {
+                                strcpy(args[argsCount].fileName, optionalFileName);
+                                printf("Optional file entry found. The file is being treated as inputFile : -%s-\n", args[argsCount].fileName);
+                            }
                             int commandsThreadedLen = splitCommands(commandsSequential[i], ';', commandsThreaded);
-                            printf("\t>Iteration of Sequential Run Commencing\n");
-                            pthread_t threads[commandsThreadedLen+1];
+
+                            pthread_t threads[commandsThreadedLen + 1];
                             //printf("threaded COUNT IS : %d\n" , commandsThreadedLen);
                             int threadsLen = 0;
                             int rc[50] = {-1};
                             struct thread_args args[50];
                             int argsCount = 0;
-                            printf("\t>Iteration of Threaded Run Commencing\n");
-                            for(int j = 0; j<commandsThreadedLen; j++){
-                                if(commandsThreaded[j] != NULL && strstr(commandsThreaded[j], "exit") != NULL)
+                            
+                            for (int j = 0; j < commandsThreadedLen; j++)
+                            {
+                                if (commandsThreaded[j] != NULL && strstr(commandsThreaded[j], "exit") != NULL)
                                     whileFlag = false;
                                 args[argsCount].fileName = fileName;
                                 printf("FiNeLe : -%s-\n", optionalFileName);
-                                if(optionalFileName != NULL && strlen(optionalFileName) > 0 && strcmp(optionalFileName, "\0") != 0){
-                                    printf("IT never be\n");
-                                    strcpy(args[argsCount].fileName, optionalFileName);
-                                }
                                 args[argsCount].singleCommand = commandsThreaded[j];
 
                                 rc[threadsLen] = pthread_create(&threads[threadsLen], NULL, multiWordParseSingleCommand, (void *)&args[argsCount++]);
-                                if(rc[threadsLen] != 0){
+                                if (rc[threadsLen] != 0)
+                                {
                                     perror("Error when opening thread.");
                                 }
                                 threadsLen++;
                             }
-                            for(int j = 0; j< threadsLen; j++){
-                                if(rc[j] == 0 && threads[j] != NULL){
+                            for (int j = 0; j < threadsLen; j++)
+                            {
+                                if (rc[j] == 0 && threads[j] != NULL)
+                                {
                                     pthread_join(threads[j], NULL);
-                                }else{
+                                }
+                                else
+                                {
                                 }
                             }
                         }
                     }
-                }else{
+                }
+                else
+                {
                 }
             }
         }
@@ -1006,28 +1138,35 @@ int splitCommands(const char *input, char delim, char *Commands[])
         token = strtok(tofree, &delim);
         if (token == NULL)
         {
-                printf("%s is not a valid command. Try again\n", input);
-                return 0;
+            printf("%s is not a valid command. Try again\n", input);
+            return 0;
         }
-        if(token[0] == ' ') token = token +1;
-        Commands[0] = malloc(sizeof(char) * strlen(token)-1);
+        if (token[0] == ' ')
+            token = token + 1;
+        Commands[0] = malloc(sizeof(char) * strlen(token) - 1);
         strcpy(Commands[0], token);
         int i = 1;
         while (token != NULL)
         {
             //printf("hEYYYY\n");
             token = strtok(NULL, &delim);
-            if (token == NULL){
+            if (token == NULL)
+            {
                 continue;
-            }else{
-            Commands[i] = malloc(sizeof(char) * strlen(token)-1);
-            if(token[0] == ' ') token = token +1;
-            strcpy(Commands[i], token);
-            i++;
+            }
+            else
+            {
+                Commands[i] = malloc(sizeof(char) * strlen(token) - 1);
+                if (token[0] == ' ')
+                    token = token + 1;
+                strcpy(Commands[i], token);
+                i++;
             }
         }
         return i;
-    }else{
+    }
+    else
+    {
         printf("NULL input.\n");
         return -1;
     }
