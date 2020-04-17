@@ -425,7 +425,7 @@ char** getKeywordFromQuotationedLine(char line[], char *words[]){
 }
 
 void *multiWordParseSingleCommand(void *ptr){
-    printf("PARSING SINGLE COMMAND FOR SOME REASON \n");
+    printf("PARSING MULTI SINGLE COMMAND FOR SOME REASON \n");
     struct thread_args *args = (struct thread_args *)ptr;
 
     char token[512];
@@ -435,8 +435,10 @@ void *multiWordParseSingleCommand(void *ptr){
 
     //NEW PART
     char *keywords[512] = {NULL};
-    char **ptr = getKeywordFromQuotationedLine(args->singleCommand, keywords);
+    char **keywordsptr = getKeywordFromQuotationedLine(args->singleCommand, keywords);
     //NEW PART
+
+    printf(">>>%s\n", args->singleCommand);
 
     //Method gets a single char array containing one command as token, and the fileName it should be writing into
     char *mainCommand = strtok(token, " ");
@@ -456,10 +458,18 @@ void *multiWordParseSingleCommand(void *ptr){
 
         if(keyword == NULL)
             printf("Error keyword is null in search command\n, its token is %s\n", token);
-            char newK[512];
-            strcpy(newK, keywords[0]);
+
+        char newK[512] = {'\0'};
+        printf("Search startirng\n");
+        if(keywordsptr[0] == NULL){
+            printf("NULL WORD");
+
+        }else{
+        strcpy(newK, keywordsptr[0]);
+        printf("Search startirng\n");
         search(newK, countFlag, openFileForReadPlus(fileName));
         printf("REACHES HERE AT LEAST \n");
+        }
 
 
     }else if(strcmp(mainCommand, "replace")==0){ ///REPLACE
@@ -483,9 +493,9 @@ void *multiWordParseSingleCommand(void *ptr){
             name = name +2;
         }
         char newK[512];
-        strcpy(newK, keywords[0]);
+        strcpy(newK, keywordsptr[0]);
         char newK2[512];
-        strcpy(newK2, keywords[1]);
+        strcpy(newK2, keywordsptr[1]);
         replace(newK, newK2, countFlag, openFileForReadPlus(fileName), name);
 
     }else if(strcmp(mainCommand, "insert") == 0){
@@ -515,9 +525,9 @@ void *multiWordParseSingleCommand(void *ptr){
             name = name +2;
         }
         char newK[512];
-        strcpy(newK, keywords[0]);
+        strcpy(newK, keywordsptr[0]);
         char newK2[512];
-        strcpy(newK2, keywords[1]);
+        strcpy(newK2, keywordsptr[1]);
         insert(newK,countFlag, afterFlag, newK2, openFileForReadPlus(args->fileName),name);
 
     }else if(strcmp(mainCommand, "lineCount") == 0){
@@ -796,7 +806,7 @@ int inputLoop(void)
                                 args.singleCommand = commandsThreaded[j];
                                 printf("\n");
                                 int rc = -1;
-                                rc = pthread_create(&threads[threadsLen++], NULL, parseSingleCommand, (void *)&args);
+                                rc = pthread_create(&threads[threadsLen++], NULL, multiWordParseSingleCommand, (void *)&args);
                                 //parseSingleCommand((void *) &args);
                                 if(rc != 0){
                                     perror("Error when opening thread.");
@@ -883,7 +893,7 @@ int batchedInputLoop(FILE *f){
                                 args[argsCount].singleCommand = commandsThreaded[j];
                                 // printf("FileName just before thread is opened : -%s-\nCommand just before thread : -%s-\n", args.fileName, args.singleCommand);
                                 //printf("\n");
-                                rc[threadsLen] = pthread_create(&threads[threadsLen], NULL, parseSingleCommand, (void *)&args[argsCount++]);
+                                rc[threadsLen] = pthread_create(&threads[threadsLen], NULL, multiWordParseSingleCommand, (void *)&args[argsCount++]);
                                 //sleep(2);
                                 printf("This rc value is : %d\n", rc[threadsLen]);
                                 //parseSingleCommand((void *) &args);
