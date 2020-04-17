@@ -131,9 +131,8 @@ void search(const char *keyword, bool countFlag, FILE *inFile)
 }
 //TODO:FIX ALL fwrites with this.
 
-void replace(const char *keyword, const char *sourceKeyword, bool countFlag, FILE *inFile, char *optionalOutputFile)
+void replace(char *keyword, char *sourceKeyword, bool countFlag, FILE *inFile, char *optionalOutputFile)
 {
-
     printf("REPLACING %s with %s \n", sourceKeyword, keyword);
     char buffer[BUFFER_SIZE];
 
@@ -198,9 +197,9 @@ void replace(const char *keyword, const char *sourceKeyword, bool countFlag, FIL
 
 int insert(char keywordToInsert[], bool countFlag, bool afterFlag, char *keywordToInsertAfter, FILE *inFile, char *optionalOutputFile)
 { //The current program inserts after the word.
-
-
     char insertKeyword[BUFFER_SIZE];
+
+    printf("INSERT METHOD CALLED\n");
 
     char buffer[BUFFER_SIZE];
     FILE *Output = fopen(TEMP_FILE_NAME, "w+");
@@ -218,12 +217,15 @@ int insert(char keywordToInsert[], bool countFlag, bool afterFlag, char *keyword
         while(1)
         {
             // Find next match and move the pointer to the end of our target keyword
+            printf("%s\n",keywordToInsertAfter);
             Stop = strstr(Start, keywordToInsertAfter);
-            //
+
             if(Stop == NULL)
             {
+                printf("JELLICAL2-1\n");
                 // Print the remaining text in the line
                  writingOperation(Start, 1, strlen(Start), Output);
+                 printf("JELLICAL2-2\n");
                 break;
             }
             printf("Match starts at: %s\n", Stop);
@@ -244,6 +246,7 @@ int insert(char keywordToInsert[], bool countFlag, bool afterFlag, char *keyword
             Start = Stop + strlen(keywordToInsertAfter);
 
             printf("Search resumes at: %s\n", Start);
+            printf("DONE LOOP\n");
 
         }
     }
@@ -257,10 +260,8 @@ int insert(char keywordToInsert[], bool countFlag, bool afterFlag, char *keyword
         writeEntireFile(inFile,Output);
 
     fclose(inFile);
-    //remove(TEMP_FILE_NAME);//DONT REMOVE IF ANOTHER THREAD IS USING THIS
-    //fclose(Output);
-
-
+    remove(TEMP_FILE_NAME);//DONT REMOVE IF ANOTHER THREAD IS USING THIS
+    fclose(Output);
     return 1;
 }
 
@@ -415,7 +416,7 @@ char** getKeywordFromQuotationedLine(char line[], char *words[]){
                     words[wordCount] = malloc(sizeof(char) * (Stop-Start));
                     strncpy(words[wordCount], ptr, Stop - Start - 1);
                     wordCount++;
-                    printf("Copied %s\n", words[wordCount-1]);
+                    //printf("Copied %s\n", words[wordCount-1]);
                     break;
                 }
             }
@@ -425,8 +426,13 @@ char** getKeywordFromQuotationedLine(char line[], char *words[]){
 }
 
 void *multiWordParseSingleCommand(void *ptr){
-    printf("PARSING MULTI SINGLE COMMAND FOR SOME REASON \n");
+
     struct thread_args *args = (struct thread_args *)ptr;
+
+    if(args == NULL && args->fileName && NULL && args->singleCommand == NULL && strlen(args->singleCommand) < 4){
+        printf("Wrong or Missing Command skipping this one\n");
+        return;
+    }
 
     char token[512];
     strcpy(token,args->singleCommand);
@@ -442,8 +448,11 @@ void *multiWordParseSingleCommand(void *ptr){
 
     //Method gets a single char array containing one command as token, and the fileName it should be writing into
     char *mainCommand = strtok(token, " ");
-    if(mainCommand == NULL)
-        printf("Main Command is null\n");
+    if(mainCommand == NULL){
+        printf("Main Command is null. Dont know what to do. Ignoring this command subset.\n");
+        return;
+
+    }
 
 
     if(strcmp(mainCommand, "search") == 0){ ///SEARCH
@@ -515,7 +524,7 @@ void *multiWordParseSingleCommand(void *ptr){
             printf("OH WOULD YOU LOOK AT THAT SOMEONE IS TRYING TO INSERT BEFORE THE WORD\n");
             afterFlag = false;
         }
-
+        printf("1\n");
         if(keywordToInsertAfter == NULL || insertedKeyword == NULL)
             perror("Error. A necessary command is missing in replace command");
         char *name = NULL;
@@ -528,6 +537,7 @@ void *multiWordParseSingleCommand(void *ptr){
         strcpy(newK, keywordsptr[0]);
         char newK2[512];
         strcpy(newK2, keywordsptr[1]);
+        printf("-%s-%s-\n", newK, newK2);
         insert(newK,countFlag, afterFlag, newK2, openFileForReadPlus(args->fileName),name);
 
     }else if(strcmp(mainCommand, "lineCount") == 0){
@@ -547,7 +557,6 @@ void *multiWordParseSingleCommand(void *ptr){
             name = (strstr(token, ">"));
             name = name +2;
         }
-
         split(charCount, openFileForReadPlus(args->fileName), name);
 
     }else if(strcmp(mainCommand, "head") == 0){
@@ -585,6 +594,8 @@ void *multiWordParseSingleCommand(void *ptr){
 
         showMidLines(openFileForReadPlus(args->fileName), startLine, endLine);
 
+    }else if(strcmp(mainCommand, "exit") == 0){
+        printf("Recieved exit command. Execution will be stopped after this iteration.\n");
     }else{
         printf("Unknown main command entered. Please try again man");
         return NULL;
@@ -593,7 +604,6 @@ void *multiWordParseSingleCommand(void *ptr){
 }
 
 void *parseSingleCommand(void *ptr){
-    printf("PARSING SINGLE COMMAND FOR SOME REASON \n");
     struct thread_args *args = (struct thread_args *)ptr;
 
     char token[512];
@@ -855,6 +865,10 @@ int batchedInputLoop(FILE *f){
         printf("\n");
         if (fgets(line, 515, f))
         {
+            if(feof(f)){
+                printf("END of FILE\n");
+                exit(78);
+            }
             if(line == NULL) exit(-99);
             linePtr = line;
             linePtr[strlen(linePtr)-1] = '\0';
@@ -875,17 +889,14 @@ int batchedInputLoop(FILE *f){
                             continue;
                         }else{
                             int commandsThreadedLen = splitCommands(commandsSequential[i], ';', commandsThreaded);
-
+                            printf("\t>Iteration of Sequential Run Commencing\n");
                             pthread_t threads[commandsThreadedLen+1];
                             //printf("threaded COUNT IS : %d\n" , commandsThreadedLen);
-                            for(int j = 0; j<commandsThreadedLen; j++){
-                               // printf("\n>-%s-\n", commandsThreaded[j]);
-                            }
-
                             int threadsLen = 0;
                             int rc[50] = {-1};
                             struct thread_args args[50];
                             int argsCount = 0;
+                            printf("\t>Iteration of Threaded Run Commencing\n");
                             for(int j = 0; j<commandsThreadedLen; j++){
                                 if(commandsThreaded[j] != NULL && strstr(commandsThreaded[j], "exit") != NULL)
                                     whileFlag = false;
@@ -895,7 +906,7 @@ int batchedInputLoop(FILE *f){
                                 //printf("\n");
                                 rc[threadsLen] = pthread_create(&threads[threadsLen], NULL, multiWordParseSingleCommand, (void *)&args[argsCount++]);
                                 //sleep(2);
-                                printf("This rc value is : %d\n", rc[threadsLen]);
+                                //printf("This rc value is : %d\n", rc[threadsLen]);
                                 //parseSingleCommand((void *) &args);
                                 if(rc[threadsLen] != 0){
                                     perror("Error when opening thread.");
@@ -904,25 +915,20 @@ int batchedInputLoop(FILE *f){
                             }
                             for(int j = 0; j< threadsLen; j++){
                                    // printf("thread : %d\n", threads[i]);
-
                                 if(rc[j] == 0 && threads[j] != NULL){
-                                    printf("\nWAITING FOR ONE THREAD\n");
                                     pthread_join(threads[j], NULL);
                                 }else{
-
                                 }
                             }
                         }
                     }
                 }else{
-                    //gets(line);
-                    //continue;
                 }
             }
         }
         else
         {
-            printf("Error ocurred when reading from the Input line\n");
+            exit(-510);
         }
         printf("\n");
     } while (whileFlag);
@@ -954,7 +960,7 @@ int splitCommands(const char *input, char delim, char *Commands[])
 
     //printf("splitCommands : %s\n", input);
 
-    char *tofree = malloc(sizeof(char) * strlen(input));
+    char *tofree = malloc(sizeof(char) * strlen(input) * 10);
 
     if (input != NULL)
     {
